@@ -72,7 +72,7 @@ load_stopwords = function(input_file = "/common-english-words.txt", output_file 
 }
 ```
 
-# 4. Clean Documents
+# 3. Clean Documents
 ```{r}
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(hrc, stopwords = c()) {
@@ -97,7 +97,7 @@ clean_documents = function(hrc, stopwords = c()) {
 }
 ```
 
-# 5. Clean Imported documents
+# 4. Clean Imported documents
 ```{r}
 # For step 2; docs is a list of matrices loaded in step 1.
 clean_imported_documents = function(docs, stopwords = c()) {
@@ -159,7 +159,7 @@ clean_imported_documents = function(docs, stopwords = c()) {
 }
 ```
 
-# 6. Power Features Sentences: Covert Text to Sentences
+# 5. Power Features Sentences: Covert Text to Sentences
 ```{r}
 convert_text_to_sentences = function(text, lang = "en") {
   # Check if the string is only whitespace
@@ -184,7 +184,7 @@ remove_punc = function(x) {
 ### output: 4 columns of power features with rownames=filename
 ```
 
-# 7. Power Feature Sentences
+# 6. Power Feature Sentences
 ```{r}
 # For step 1.
 power_features_sentence = function(doc) {
@@ -245,7 +245,7 @@ power_features_sentence = function(doc) {
 }
 ```
 
-# 8. Power Features from DTM: 6 Features
+# 7. Power Features from DTM: 6 Features
 ```{r}
 ### input: dtm
 ### output: new power features matrix
@@ -284,7 +284,7 @@ power_features_dtm = function(dtm) {
 }
 ```
 
-# 9. Power Features Bigrams
+# 8. Power Features Bigrams
 ```{r}
 ################ power features bigrams: most frequent 2950 features ###############
 ### input: tm data
@@ -363,7 +363,7 @@ power_features_ngrams = function(hrc, stopwords = c(), ngrams = 2, min_sparsity 
 }
 ```
 
-# 10. Power Feature Matrix
+# 9. Power Feature Matrix
 ```{r}
 ########################## Power features matrix ##########################
 
