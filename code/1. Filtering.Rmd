@@ -348,11 +348,10 @@ save(combined_features, file="data/combined-features.RData")
 # Cleanup objects
 rm(docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
 rm(bigram_usage, trigram_usage, word_features)
+```
 
-
-#########################################
-# Epilogue -- 
-
+# 5. Review
+```{r}
 gc()
 
 # Review script execution time.
@@ -365,4 +364,3 @@ if (exists("script_timer")) {
 # Stop logging.
 sink()
 ```
-
