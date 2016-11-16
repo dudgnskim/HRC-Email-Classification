@@ -1,0 +1,385 @@
+---
+title: "Part 0"
+author: "Kuang Li"
+date: "11/14/2016"
+output: pdf_document
+---
+###Install Packages
+```{r}
+#Install Packages
+pkg = c("ggplot2","tm", "SnowballC", "stringi", "stringr", "openNLP", "NLP", "qdap", "dplyr", "foreach")
+new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
+sapply(pkg,require,character.only = TRUE)
+```
+
+
+###Import text
+```{r}
+import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
+
+  file_names = list.files(path=directory, pattern="*\\.tsv", full.names=F, recursive=T)
+  cat(paste0("Found ", length(file_names), " text files in \"", directory, "\" to import.\n"))
+
+  if (length(file_names) == 0) {
+    stop(paste("did not find any files to load. Make sure you have unzipped the training",
+               "data into the inbound directory."))
+  }
+
+  # This takes a while to run
+  system.time({
+    # Recursively load all text files in subdirectories of our main file directory.
+    docs = list()
+    # Since disk is the main bottleneck here, multicore processing probably wouldn't help.
+    for (type in names(doc_dirs)) {
+      docs[[type]] = Corpus(DirSource(paste0(directory, doc_dirs[[type]]), pattern = file_pattern))
+      cat(paste0("Processed ", type, " in subdir \"", doc_dirs[[type]], "\" and found ", length(docs[[type]]), " documents.\n"))
+    }
+  })
+
+  cat("Total documents loaded:", sum(sapply(docs, length)), "\n")
+
+  # Return the result.
+  return(docs)
+}
+
+docs <- import_text_documents(getwd()) #Set the directory of the function to current directory by using getwd() which loads the .tsv file in the directory
+```
+
+###Load Stopwords
+```{r}
+### Exclude the common word features (known as stop words) listed in
+# http://www.textfixer.com/resources/common-english-words.txt
+# For step 1.
+load_stopwords = function(input_file = file.choose(), output_file = "stopwords.Rda",reload_file=F) {
+  # Just re-use the output file if it already exists.
+  # Set reload_file = T if you want to force the function to reload the input file.
+  if (!reload_file && length(output_file) > 0 && file.exists(output_file)) {
+    load(output_file)
+  } else {
+    # Load the official stopword list and make sure it's the same as the one used by tm.
+    file_con = file(input_file)
+    # Process it as one line separated by commas, and convert it to a vector.
+    stopwords = unlist(strsplit(readLines(file_con)[1], split=c(","), fixed=T))
+    close(file_con)
+
+    if (length(output_file) > 0) {
+      save(stopwords, file=output_file)
+    }
+  }
+  return(stopwords)
+}
+#file.choose() allow manually select the common-english-words.text file 
+
+load("stopwords.Rda") #load the variable "stopwords" into the global environment
+```
+
+###Clean documents
+```{r}
+# Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
+clean_documents = function(hrc, stopwords = stopwords) {
+  hrc = tm_map(hrc, content_transformer(tolower))
+
+  # hrc = tm_map(hrc, removeWords)
+  if (length(stopwords) > 0) {
+    hrc  = tm_map(hrc, removeWords, stopwords)
+  }
+  
+  
+  # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
+  # without substituting spaces, which will mess up the words.
+  dtm = DocumentTermMatrix(hrc,
+                           control = list(tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T)
+  )
+  dtm = removeSparseTerms(dtm, .99)
+  dtm = as.data.frame(as.matrix(dtm))
+  return(dtm)
+}
+hrc <- read.table(file.choose(), stringsAsFactors = FALSE) #load the HRC_train.tsv file
+Unique_words <- clean_documents(Corpus(VectorSource(hrc$V2)), stopwords) #gives unique words after removing stopwords
+```
+
+###Clean imported documents
+```{r}
+# For step 2; docs is a list of matrices loaded in step 1.
+clean_imported_documents = function(docs = docs, stopwords = stopwords) {
+
+  # This step is slow. 
+  #foreach (type in names(docs)) %dopar% {
+    cleaned_docs = foreach (type = names(docs)) %dopar% {
+    #cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
+      doc_set = clean_documents(Corpus(VectorSource(docs)), stopwords)
+
+      # Fix rownames - remove the .tsv suffix from the name.
+      rownames(doc_set) = gsub("\\.tsv$", "", rownames(doc_set))
+
+      # Prepend the document class to reduce chance of duplicate rownames.
+      # But don't do this if we have only a single document class (e.g. no_class).
+      if (length(docs) > 1) {
+        rownames(doc_set) = paste0(type, "_", rownames(doc_set))
+      }
+
+      doc_set
+    }
+  names(cleaned_docs) = names(docs)
+  # Confirm document dimensions:
+  sapply(cleaned_docs, FUN=dim)
+
+  # This creates our target/response vector as a factor with values of e-mail senders
+  targets = NA
+  # This will run if we have outcome labels for the data, otherwise we'll keep targets as NA.
+  if (length(names(docs)) > 0 | names(docs)[1] != "no_type") {
+    targets = as.factor(unlist(sapply(names(cleaned_docs), simplify="array", USE.NAMES=F,
+                        FUN=function(doc_type){ rep(doc_type, length.out=nrow(as.matrix(cleaned_docs[[doc_type]])))})))
+  } 
+
+  # Combine docs into a single dataframe - takes roughly a minute on EC2.
+  system.time({
+    docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
+  })
+
+
+  # Confirm that we have no duplicated rownames.
+  length(unique(rownames(docs))) == nrow(docs)
+
+  # Make sure that the # of rows in the document corpus equals the length of our target vector.
+  # Otherwise stop and give an error.
+  if (length(targets) > 1 || !is.na(targets)) {
+    stopifnot(nrow(docs) == length(targets))
+  }
+
+  # Return our result.
+  result = list(docs=docs, targets=targets)
+  return(result)
+}
+
+dummy <- clean_imported_documents()
+```
+
+###Convert text to sentences
+```{r}
+convert_text_to_sentences = function(text, lang = "en") {
+  # Check if the string is only whitespace
+  if (text %in% c("", " ") || str_count(text, "\\s") == str_length(text)) {
+    return(c())
+  }
+  sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)
+  text <- as.String(text)
+  # Need to specify NLP package, because ggplot2 also has an annotate function.
+  sentence.boundaries = NLP::annotate(text, sentence_token_annotator)
+  sentences = text[sentence.boundaries]
+  return(sentences)
+}
+
+### external function(2): removes punctuations
+remove_punc = function(x) {
+  gsub("[[:punct:]]", "", x)
+}
+
+### main function: generates sentence-based power feature matrix
+### input: tm data
+### output: 4 columns of power features with rownames=filename
+```
+
+###Power feature sentences
+```{r}
+# For step 1.
+doc_6 <- Corpus(VectorSource(hrc$V2))
+power_features_sentence = function(doc = doc_6) {
+  n = length(doc)
+  power = matrix(NA, nrow = n, ncol = 6, dimnames = list(seq(1, n)))
+
+  # Run this processing outside of the loop to make it faster.
+  hrcs = tm_map(doc, content_transformer(tolower))
+
+  hrcs = tm_map(hrcs, stripWhitespace)
+  # Stemming takes a particularly long time.
+  hrcs = tm_map(hrcs, stemDocument) 
+
+  # TODO: figure out how to remove this For loop to improve speed. 
+  for (i in 1:n) {
+
+    hrc = hrcs[i]
+
+    text = as.data.frame(hrc)[2]
+    sents = convert_text_to_sentences(text)
+
+    # CK: Can we convert this to tm_map(sents, removePunctation)?
+    sents2 = lapply(sents, remove_punc)
+
+    # Number of sentences.
+    power6 = length(sents2)
+
+    # Average sentence length.
+    # TODO: convert to directly calculate average strength length without regex.
+    power7 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
+
+    # Number of 4-digit numbers (years). 
+    power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
+
+    # Number of digits.
+    # CK: actually, this is number of sentences that contain a digit.
+    power9 = sum(grepl("[[:digit:]]", sents2))
+
+    # Number of question marks.
+    power10 = sum(str_count(text, fixed("?")))
+
+    #s Number of exclamation marks.
+    power11 = sum(str_count(text, fixed("!")))
+
+    ### 
+
+    #title = names(hrc)
+    #power[i,] = as.matrix(cbind(power6, power7, power8, power9))
+    power[i, ] = c(power6, power7, power8, power9, power10, power11)
+    #rownames(power)[i] = title
+  }
+  rownames(power) = names(hrcs)
+  colnames(power) = c("sentence_count", "sentence_avg_length", "4digit_nums", "digit_count", "question_marks", "exclamation_points")
+  return(power)
+}
+
+power_feat_sentences <- power_features_sentence() #outcome a matrix that uses sentence as power features
+```
+
+###Power Features from DTM: 6 Features
+```{r}
+### input: dtm
+### output: new power features matrix
+power_features_dtm = function(dtm) {
+
+  new = matrix(NA,nrow=nrow(dtm),ncol=6)
+  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words", "word_diversity")
+  words_chars = nchar(colnames(dtm))
+
+  for(i in 1:nrow(dtm)){
+    ### power1: total number of words
+    new[i,1] = sum(as.numeric(dtm[i,]))
+
+    ### power2: total number of characters
+    new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
+
+    ### power3: returns the vector of average word length of each txt file
+    # Use max so that if there are 0 distinct words we don't try to divide by 0.
+    new[i,3] = new[i,2]/max(new[i,1], 1)
+
+    ### power4: number of unique words
+    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+
+    ### power5: standard deviation of word length
+    # CK: why not just use the sd() function here?
+    sqrdmean = sum(as.matrix(words_chars^2) * as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    new[i,5] = sqrdmean-(mean^2)
+
+    ### power6: word diversity
+    new[i,6] = new[i,4]/max(new[i,1], 1)
+
+  }
+  new = as.data.frame(new)
+  return(new)
+}
+
+pwr_feat_dtm <- power_features_dtm(Unique_words) #returns the power feature using words in the emails
+```
+
+###Power features bigrams
+```{r}
+################ power features bigrams: most frequent 2950 features ###############
+### input: tm data
+### output: power feature columns
+library(NLP)
+
+# Change ngrams to 3 when calling to get trigrams.
+NgramTokenizer = function(x, ngram = 2) {
+  # Specify NLP package because qdap also provides the ngrams function.
+  unlist(lapply(NLP::ngrams(words(x), ngram), paste, collapse = " "), use.names = FALSE)
+}
+
+BigramTokenizer = function(x, ngram = 2) {
+  NgramTokenizer(x, ngram)
+}
+
+# Separate function because it's unclear how to change a parameter in the DocumentTermMatrix call.
+TrigramTokenizer = function(x, ngram = 3) {
+  NgramTokenizer(x, ngram)
+}
+
+
+# Specify core to prevent a bug when multiple cores are used.
+options(mc.cores=1)
+
+hrc_8 = Corpus(VectorSource(hrc$V2))
+
+power_features_ngrams = function(hrc = hrc_8, stopwordss = stopwords, ngram = 2, min_sparsity = 0.99) {
+  hrc = tm_map(hrc, content_transformer(tolower))
+  hrc = tm_map(hrc, removePunctuation)
+  hrc = tm_map(hrc, removeNumbers)
+
+  if (length(stopwords) > 0) {
+    hrc  = tm_map(hrc, removeWords, stopwordss)
+  }
+  hrc = tm_map(hrc, stripWhitespace)
+
+  # Generate all ngrams as features.
+
+  # Choose which function to pass because it's unclear how we would change an argument.
+  if (ngram == 3) {
+    f = TrigramTokenizer
+  } else {
+    f = BigramTokenizer
+  }
+
+  dtm_ngrams = DocumentTermMatrix(hrc,
+                           control = list(tokenize = f, stopwordss=T, stemming=T))
+
+  # We have to removeSparseTerm before converting to a matrix because there may be too many cells otherwise (> a billion).
+  # This is a loose restriction - bigram must be used in at least 1% of documents.
+  # TODO: may need to tweak this for prediction/verification data - don't want to remove training bigrams.
+  dtm_nosparse = removeSparseTerms(dtm_ngrams, min_sparsity)
+
+  # Confirm that we did not remove every bigram.
+  stopifnot(dtm_nosparse$ncol > 0)
+
+  dtm = as.data.frame(as.matrix(dtm_nosparse))
+
+  # Identify how many docs use each n-gram.
+  usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+
+  # Look at the top 50 bigrams
+  sort(usage, decreasing=T)[1:50]
+
+  # Exclude bigrams that are used in every document.
+  # filtered = bigrams_usage[bigrams_usage != nrow(dtm)]
+  # filtered = bigrams_usage
+
+  # Choose the top X bigrams based on how many docs they are used in.
+  #sorted = sort(filtered, decreasing=T)[1:2950]
+  #bigrams_freq = names(sorted)
+  #dtm = dtm[, bigrams_freq]
+
+  return(dtm)
+}
+
+pwr_feat_ngrams <- power_features_ngrams()
+```
+
+###Power Feature Matrix
+```{r}
+########################## Power features matrix ##########################
+
+######################### Word+Power features matrix ########################
+
+# Setup multicore processing to speed up the model training.
+setup_multicore = function(conf = NULL) {
+  cat("Cores detected:", detectCores(), "\n")
+  if (exists("conf") && !is.null(conf)) {
+    registerDoMC(conf$num_cores)
+  } else {
+    # Uses half of the available cores by default, which is a good default setting.
+    registerDoMC()
+  }
+  cat("Workers enabled:", getDoParWorkers(), "\n")
+}
+
+```
