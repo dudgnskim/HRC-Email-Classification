@@ -1,6 +1,6 @@
 ---
 title: "SVM Classification - HRC Project"
-author: "Dotun Fatade"
+author: "Dotun Lytton-Fatade"
 date: "November 14, 2016"
 output: pdf_document
 ---
