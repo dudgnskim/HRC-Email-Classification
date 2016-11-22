@@ -23,10 +23,10 @@ cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 script_timer = proc.time()
 
 # Load our main functions.
-source("functionlib.R")
+source("../part0/functionlib.Rmd")
 
 # Directory to load
-directory = "code/"
+directory = "code/part0"
 ```
 
 
@@ -46,7 +46,7 @@ library(tm)
 library(SnowballC) # for stemming
 library(doMC) # For multicore processing.
 # Setup multicore processing to speed up script execution.
-load("data/imported-text-docs.Rdata")
+load("data/imported_text_docs.RData")
 stopwords = load_stopwords()
 
 # Check if it's the same list as the one used by tm()
@@ -80,7 +80,7 @@ print(dim(docs))
 print(table(targets))
 print(length(targets))
 
-save(docs, targets, file="data/cleaned-docs.Rdata")
+save(docs, targets, file="data/cleaned_docs.RData")
 
 rm(result, docs, targets, stopwords)
 
@@ -112,7 +112,7 @@ script_timer = proc.time()
 #########################################
 
 # Load the docs file, even if it already exists because it may the new filtered version.
-load("data/cleaned-docs.Rdata")
+load("data/cleaned_docs.RData")
 
 # Remove words that are used in at least 100% of documents - 0 words.
 cutoff_high_pct = 1
@@ -134,7 +134,7 @@ system.time({
 })
 summary(word_usage)
 hist(word_usage, breaks=30, main="Documents using the word")
-dev.copy(png, "visuals/3-feature-filtering-histogram.png")
+dev.copy(png, "visuals/3_feature_filtering_histogram.png")
 dev.off()
 
 # How many words do we have right now?
@@ -156,14 +156,14 @@ docs = docs[, !colnames(docs) %in% names(word_usage[word_usage < cutoff_low]) ]
 word_usage  = word_usage[word_usage >= cutoff_low & word_usage <= cutoff_high]
 summary(word_usage)
 hist(word_usage, breaks=30, main="Documents using the word (pruned)")
-dev.copy(png, "visuals/3-feature-filtering-histogram-pruned.png")
+dev.copy(png, "visuals/3_feature_filtering_histogram_pruned.png")
 dev.off()
 
 # Final dimensions.
 dim(docs)
 
 # Save the result.
-save(docs, targets, file="data/filtered-docs.Rdata")
+save(docs, targets, file="data/filtered_docs.RData")
 
 # Clean up environment.
 rm(cutoff_high, cutoff_low, word_usage, cutoff_high_pct, targets, docs)
@@ -208,9 +208,9 @@ library(doMC) # Setup multicore processing to speed up the processing.
 
 
 # Remember to load the .Rproj file in Rstudio so that paths are relative to the project directory.
-load("data/imported-text-docs.Rdata")
+load("data/imported_text_docs.RData")
 
-source("functionlib.R")
+source("../part0/functionlib.Rmd")
 
 
 cat("Cores detected:", detectCores(), "\n")
@@ -302,9 +302,9 @@ sentence_features[is.na(sentence_features[, "sentence_avg_length"]), "sentence_a
 apply(sentence_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
 
 # Save these features since they take a long time to calculate and R could crash.
-save(sentence_features, file="data/sentence-power-features.Rdata")
+save(sentence_features, file="data/sentence_power_features.RData")
 
-load("data/cleaned-docs.Rdata")
+load("data/cleaned_docs.RData")
 
 # Run the dtm power features on the word feature dataframe.
 # This takes ~3.6 hours to finish on EC2.
@@ -319,10 +319,10 @@ apply(word_features, FUN=summary, MARGIN=2)
 apply(word_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
 
 # Save these features since they take a long time to calculate and R could crash.
-save(word_features, file="data/word-power-features.Rdata")
+save(word_features, file="data/word_power_features.RData")
 
 # Save component so that they can be analyzed more easily later.
-save(sentence_features, word_features, bigram_features, trigram_features, file="data/power-feature-components.Rdata")
+save(sentence_features, word_features, bigram_features, trigram_features, file="data/power_feature_components.RData")
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
@@ -333,17 +333,17 @@ power_features = cbind(sentence_features, word_features, bigram_features, trigra
 
 dim(power_features)
 
-save(power_features, file="data/power-features.RData")
+save(power_features, file="data/power_features.RData")
 
 
 # Now load the filtered word features to create the combined feature matrix.
-load("data/filtered-docs.Rdata")
+load("data/filtered_docs.Rdata")
 
 combined_features = cbind(docs, power_features)
 
 dim(combined_features)
 
-save(combined_features, file="data/combined-features.RData")
+save(combined_features, file="data/combined_features.RData")
 
 # Cleanup objects
 rm(docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
