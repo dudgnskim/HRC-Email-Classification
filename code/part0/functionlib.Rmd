@@ -67,6 +67,7 @@ exclude_redundancy = function(x) {
   for (red in redun) {
   x <- gsub(red, "", x)
   }
+  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
   return(x)
 }
 
