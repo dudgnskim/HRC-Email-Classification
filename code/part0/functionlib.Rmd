@@ -1,6 +1,6 @@
 ---
 title: "FunctionLib"
-author: "Dotun Lytton-Fatade"
+author: "Dotun Lytton-Fatade, Young Hoon Kim"
 date: "November 4, 2016"
 output: pdf_document
 ---
@@ -11,6 +11,7 @@ pkg = c("ggplot2","tm", "SnowballC", "stringi", "stringr", "openNLP", "NLP", "qd
 new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
 if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
 sapply(pkg,require,character.only = TRUE)
+#setwd('~/coding/stat154coding/154proj/code/part0')
 ```
 
 # 1. Import text
@@ -44,17 +45,23 @@ import_text_documents = function(directory = "", doc_dirs = list(no_type=""), fi
   # Return the result.
   return(docs)
 }
+# HOON #
 # Training data import
-train <- import_text_documents('../../data/train')[[1]][[1]]$content
+train <- import_text_documents('../../data/train')[[1]] # save in this format, which results in train to be a Large VCorpus. This is necessary because we need to put this into tm_map function later in step 3.
 # Extract response variables from each email
-res_var <- as.numeric(str_extract(train, "[0-9]+"))
+res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
+# Also using train[[1]]$content because train is in Large VCorpus format.
 
 # Accessing data (training data) from docs:
 # HOON: I think it would be better if we separate the two data set (train and test), so that there is no confusion. Anyways, in this file structure, in order to access the pure training data we want, we need to do
 # hrc_tr <- docs[[1]][[1]]$content
 # Changed the data path so that only one tsv file is contained in the directory (In order to prevent confusion in using data).
 # Now train = training data, res_var = response(Y) variable extracted from emails.
-
+### external function(2): removes punctuations and multiple whitespaces.
+remove_extra = function(x) {
+  gsub("\\s+", " ", gsub("[[:punct:]]", "", x))
+}
+# HOON #
 
 ### Exclude the common word features (known as stop words) listed in
 # http://www.textfixer.com/resources/common-english-words.txt
@@ -87,7 +94,7 @@ require(tm) # For the stopwords provided in tm package.
 #  }
 #}
 
-#OR I think we could use this too.
+#OR I think we could use this too. (HOON)
 # Creates stopwords with the input_file, and the default stopwords provided from tm package.
 load_stopwords = function(input_file = '../../data/common-english-words.txt',
                           output_file = '../../data/stopwords.RData', reload_file = F) {
@@ -112,7 +119,7 @@ load_stopwords = function(input_file = '../../data/common-english-words.txt',
   }
 }
 # Load stopwords
-load_stopwords() # I tried to find a way to actually load the stopwords inside the function, but it doesn't seem so easy..
+load_stopwords() # I tried to find a way to actually load the stopwords inside the function, but it doesn't seem so easy.. (HOON)
 load('../../data/stopwords.RData')
 ```
 
@@ -218,10 +225,6 @@ convert_text_to_sentences = function(text, lang = "en") {
   return(sentences)
 }
 
-### external function(2): removes punctuations
-remove_punc = function(x) {
-  gsub("[[:punct:]]", "", x)
-}
 
 ### main function: generates sentence-based power feature matrix
 ### input: tm data
