@@ -88,18 +88,26 @@ load_stopwords = function(input_file = '../../data/common-english-words.txt',
                           output_file = '../../data/stopwords.RData', reload_file = F) {
   # Just re-use the output file if it already exists.
   # Set reload_file = T if you want to force the function to reload the input file.
-  if (!reload_file && length(output_file) > 0 && file.exists(output_file)) {
-    load(output_file)
+  if (reload_file && length(output_file) > 0 && file.exists(output_file)) {
+    e <- new.env()
+    load(output_file, envir = e)
+    e
   } else {
+    # Stopwords from common-english-words.txt
     com_sw <- as.character(read.table('../../data/common-english-words.txt', sep = ',',
                                       stringsAsFactors = FALSE))
+    # Stopwords from the tm pacakge in R
     tm_sw <- stopwords("en")
-    stopwords <- append(com_sw, tm_sw)
-    if (length(output_file) > 0) {
-      save(stopwords, file=output_file)
-    }
+    
+    # Merge two and find unique stopwords
+    stopwords <- unique(append(com_sw, tm_sw))
+    
+    # Save the merged stopwords
+    save(stopwords, file=output_file)
   }
 }
+# Load stopwords
+load_stopwords() # I tried to find a way to actually load the stopwords inside the function, but it doesn't seem so easy..
 load('../../data/stopwords.RData')
 ```
 
