@@ -61,6 +61,17 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 remove_extra = function(x) {
   gsub("\\s+", " ", gsub("[[:punct:]]", "", x))
 }
+exclude_redundancy = function(x) {
+  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.")
+  for (red in redun) {
+  x <- gsub(red, "", x)
+  }
+  return(x)
+}
+
+# First cleaned document
+train[[1]]$content <- lapply(lapply(train[[1]]$content, exclude_redundancy), remove_extra)
 # HOON #
 
 ### Exclude the common word features (known as stop words) listed in
@@ -126,11 +137,13 @@ load('../../data/stopwords.RData')
 # 3. Clean Documents
 ```{r}
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
+# HOON #
+# Here, put in train from Step 1 as the input for hrc. tm_map only takes Corpus form of data as input.
 clean_documents = function(hrc, stopwords = c()) {
   hrc = tm_map(hrc, content_transformer(tolower))
   
   # Remove the project subject text.
-  hrc = tm_map(hrc, removesubject)
+  # hrc = tm_map(hrc, removesubject)
   
   # hrc = tm_map(hrc, removeWords, subject)
   if (length(stopwords) > 0) {
@@ -138,9 +151,8 @@ clean_documents = function(hrc, stopwords = c()) {
   }
   # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
   # without substituting spaces, which will mess up the words.
-  dtm = DocumentTermMatrix(hrc,
-                           control = list(tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T)
-  )
+  dtm = DocumentTermMatrix(hrc, control = list(tolower=T, stopwords=T, removePunctuation=T,
+                                               removeNumbers=T, stemming=T))
   dtm = removeSparseTerms(dtm, .99)
   # Let's hold off on this part for now.
   #dtm = as.data.frame(as.matrix(dtm))
