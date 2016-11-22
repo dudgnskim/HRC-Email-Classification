@@ -59,14 +59,18 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 # Now train = training data, res_var = response(Y) variable extracted from emails.
 ### external function(2): removes punctuations and multiple whitespaces.
 remove_extra = function(x) {
+  # Removing multiple whitespaces and punctuations.
   gsub("\\s+", " ", gsub("[[:punct:]]", "", x))
 }
 exclude_redundancy = function(x) {
+  # Create a character vector that consists of meaningless word chunks.
   redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
              "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.")
+  # Remove elements in redun from the email set
   for (red in redun) {
   x <- gsub(red, "", x)
   }
+  # Since we don't need any words more than once.
   x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
   return(x)
 }
