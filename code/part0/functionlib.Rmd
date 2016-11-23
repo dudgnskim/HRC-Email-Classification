@@ -57,13 +57,15 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 # hrc_tr <- docs[[1]][[1]]$content
 # Changed the data path so that only one tsv file is contained in the directory (In order to prevent confusion in using data).
 # Now train = training data, res_var = response(Y) variable extracted from emails.
-### external function(2): removes punctuations, numbers, single/two-lettered words, repeating letters and multiple whitespaces.
+### external function(2): removes punctuations, numbers, single/two-lettered words and multiple whitespaces.
 remove_extra = function(x) {
-  # Removing multiple punctuations, numbers, single/two-lettered words, repeating letters (more than 3 times) and whitespaces. (In that order)
-  gsub("\\s+", " ", 
-       gsub("\\b(\\S+?)\\1\\S*\\b", "",
-            gsub("*\\b[[:alpha:]]{1,2}\\b *", " ",
-                 gsub("[[:digit:]]", "", gsub("[[:punct:]]", "", x))), perl = TRUE))
+  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
+  x <- gsub("[[:punct:]]", "", x) # Removes punctuations
+  x <- gsub("[[:digit:]]", "", x) # Removes numbers
+  x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
+  #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
+  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+  return(x)
 }
 exclude_redundancy = function(x) {
   # Create a character vector that consists of meaningless word chunks.
