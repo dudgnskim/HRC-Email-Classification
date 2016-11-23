@@ -57,11 +57,13 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 # hrc_tr <- docs[[1]][[1]]$content
 # Changed the data path so that only one tsv file is contained in the directory (In order to prevent confusion in using data).
 # Now train = training data, res_var = response(Y) variable extracted from emails.
-### external function(2): removes punctuations, numbers, single/two-lettered words and multiple whitespaces.
+### external function(2): removes punctuations, numbers, single/two-lettered words, repeating letters and multiple whitespaces.
 remove_extra = function(x) {
-  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
-  gsub("\\s+", " ", gsub("*\\b[[:alpha:]]{1,2}\\b *", " ",
-                         gsub("[[:digit:]]", "", gsub("[[:punct:]]", "", x))))
+  # Removing multiple punctuations, numbers, single/two-lettered words, repeating letters (more than 3 times) and whitespaces. (In that order)
+  gsub("\\s+", " ", 
+       gsub("\\b(\\S+?)\\1\\S*\\b", "",
+            gsub("*\\b[[:alpha:]]{1,2}\\b *", " ",
+                 gsub("[[:digit:]]", "", gsub("[[:punct:]]", "", x))), perl = TRUE))
 }
 exclude_redundancy = function(x) {
   # Create a character vector that consists of meaningless word chunks.
@@ -150,21 +152,17 @@ load('../../data/stopwords.RData')
 # HOON #
 # Here, put in train from Step 1 as the input for hrc. tm_map only takes Corpus form of data as input.
 clean_documents = function(hrc, stopwords = c()) {
-  hrc = tm_map(hrc, content_transformer(tolower))
-  
-  # Remove the project subject text.
-  # hrc = tm_map(hrc, removesubject)
-  
-  # hrc = tm_map(hrc, removeWords, subject)
+  # Remove stopwords from the data set.
   if (length(stopwords) > 0) {
     hrc  = tm_map(hrc, removeWords, stopwords)
   }
-  # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
-  # without substituting spaces, which will mess up the words.
-  dtm = DocumentTermMatrix(hrc, control = list(tolower=T, stopwords=T, removePunctuation=T,
-                                               removeNumbers=T, stemming=T))
+  
+  # Turn VCorpus into a DocumentTermMatrix.
+  dtm = DocumentTermMatrix(hrc, control = list(stemming=T))
+  
+  # Removing terms that occurs less than 1% of the time in the document.
   dtm = removeSparseTerms(dtm, .99)
-  # Let's hold off on this part for now.
+  
   #dtm = as.data.frame(as.matrix(dtm))
   return(dtm)
 }
