@@ -66,7 +66,8 @@ exclude_redundancy = function(x) {
   # Create a character vector that consists of meaningless word chunks.
   redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
              "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
-             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "a.m.",
+             "p.m.", "i'm", "re:", "a.m", "p.m", "am", "pm")
   # Remove elements in redun from the email set
   x <- tolower(x)
   for (red in redun) {
