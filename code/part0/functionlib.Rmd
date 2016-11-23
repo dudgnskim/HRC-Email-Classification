@@ -60,7 +60,7 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 ### external function(2): removes punctuations and multiple whitespaces.
 remove_extra = function(x) {
   # Removing multiple whitespaces and punctuations.
-  gsub("\\s+", " ", gsub("[[:punct:]]", "", x))
+  gsub("\\s+", " ", gsub("[[::]]", "", gsub("[[:punct:]]", "", x)))
 }
 exclude_redundancy = function(x) {
   # Create a character vector that consists of meaningless word chunks.
@@ -122,8 +122,7 @@ load_stopwords = function(input_file = '../../data/common-english-words.txt',
     e
   } else {
     # Stopwords from common-english-words.txt
-    com_sw <- as.character(read.table('../../data/common-english-words.txt', sep = ',',
-                                      stringsAsFactors = FALSE))
+    com_sw <- as.character(read.table(input_file, sep = ',', stringsAsFactors = FALSE))
     # Stopwords from the tm pacakge in R
     tm_sw <- stopwords("en")
     
@@ -163,6 +162,7 @@ clean_documents = function(hrc, stopwords = c()) {
   #dtm = as.data.frame(as.matrix(dtm))
   return(dtm)
 }
+dtm = clean_documents(train, stopwords)
 ```
 
 # 4. Clean Imported documents
@@ -183,7 +183,7 @@ clean_imported_documents = function(docs, stopwords = c()) {
       doc_set = clean_documents(docs[[type]], stopwords)
       
       # Fix rownames - remove the .txt suffix from the name.
-      rownames(doc_set) = gsub("\\.txt$", "", rownames(doc_set))
+      rownames(doc_set) = gsub("\\.tsv$", "", rownames(doc_set))
       
       # Prepend the document class to reduce chance of duplicate rownames.
       # But don't do this if we have only a single document class (e.g. no_class).
@@ -194,7 +194,7 @@ clean_imported_documents = function(docs, stopwords = c()) {
       doc_set
     }
   })
-  names(cleaned_docs) = names(docs)
+  rownames(cleaned_docs) = names(docs)
   # Confirm document dimensions:
   sapply(cleaned_docs, FUN=dim)
   
