@@ -57,9 +57,9 @@ res_var <- as.numeric(str_extract(train[[1]]$content, "[0-9]+"))
 # hrc_tr <- docs[[1]][[1]]$content
 # Changed the data path so that only one tsv file is contained in the directory (In order to prevent confusion in using data).
 # Now train = training data, res_var = response(Y) variable extracted from emails.
-### external function(2): removes punctuations and multiple whitespaces.
+### external function(2): removes punctuations, numbers and multiple whitespaces.
 remove_extra = function(x) {
-  # Removing multiple whitespaces and punctuations.
+  # Removing multiple whitespaces, numbers and punctuations.
   gsub("\\s+", " ", gsub("[[:digit:]]", "", gsub("[[:punct:]]", "", x)))
 }
 exclude_redundancy = function(x) {
