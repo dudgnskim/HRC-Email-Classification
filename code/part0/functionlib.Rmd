@@ -20,7 +20,7 @@ sapply(pkg,require,character.only = TRUE)
 import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
 
   file_names = list.files(path=directory, pattern=file_pattern, full.names=F, recursive=T)
-  cat(paste0("Found ", length(file_names), " text files in \"", directory, "\" to import.\n"))
+  cat(paste0("Found ", length(file_names), " .tsv files in \"", directory, "\" to import.\n"))
 
   if (length(file_names) == 0) {
     stop(paste("did not find any files to load. \nMake sure you have unzipped the training",
