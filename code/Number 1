@@ -1,0 +1,49 @@
+###Install Packages
+```{r}
+#Install Packages
+pkg = c("ggplot2","tm", "SnowballC", "stringi", "stringr", "openNLP", "NLP", "qdap", "dplyr", "foreach", "XML")
+new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
+sapply(pkg,require,character.only = TRUE)
+```
+
+###Load the file
+```{r}
+HRC <- read.table(file.choose(), header = FALSE, stringsAsFactors = FALSE)
+```
+
+###Remove unnecessary stuff and change all to lower case
+```{r}
+remove_extra = function(x) {
+  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
+  x <- gsub("[[:punct:]]", "", x) # Removes punctuations
+  x <- gsub("[[:digit:]]", "", x) # Removes numbers
+  x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
+  #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
+  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+  return(x)
+}
+exclude_redundancy = function(x) {
+  # Create a character vector that consists of meaningless word chunks.
+  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
+             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "f-",
+             "release in full", "release in part", "state-", "january", "february", 
+             "march", "april", "may", "june", "july", "august", "september", "october", 
+             "november", "december", "subject", "fvv", "sent", "scb")
+  # Remove elements in redun from the email set
+  x <- tolower(x)
+  for (red in redun) {
+  x <- gsub(red, "", x)
+  }
+  # Since we don't need any words more than once.
+  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
+  return(x)
+}
+
+for (email in 1:nrow(HRC)) {
+  HRC[email, 2] <- exclude_redundancy(HRC[email, 2])
+  HRC[email, 2] <- remove_extra(HRC[email, 2])
+  HRC[email,2] = removeWords(HRC[email, 2], stopwords)
+}
+```
