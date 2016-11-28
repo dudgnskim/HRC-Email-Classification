@@ -141,7 +141,7 @@ power_features_dtm = function(dtm) {
   return(new)
 }
 
-z <- power_features_dtm(dtm1[5, ]) #returns the power feature using words in the emails
+pwr_feat_dtm <- power_features_dtm(dtm1) #returns the power feature using words in the emails
 ```
 
 ###Combine word features and power features
