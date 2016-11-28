@@ -12,7 +12,22 @@ sapply(pkg,require,character.only = TRUE)
 HRC <- read.table(file.choose(), header = FALSE, stringsAsFactors = FALSE)
 HRC_power_feat <- HRC
 ```
+###Load stopwords vector
+```{r}
+#Load stopwords downloaded from online sources into R as a vector
+stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",")
 
+#Load stopwords from builtin in the "tm" package
+stopwords_builtin = stopwords()
+
+#Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
+stopwords = unique(append(stopwords_from_online, stopwords_builtin))
+
+#Remove all stopwords appeared in the stopwords list
+for (email in 1:nrow(HRC_train)) {
+  HRC_train[email,2] = removeWords(HRC_train[email, 2], stopwords)
+}
+```
 ###Remove unnecessary stuff and change all to lower case
 ```{r}
 remove_extra = function(x) {
