@@ -51,5 +51,6 @@ for (email in 1:nrow(HRC)) {
 ###Creating Word Features
 ```{r}
 dtm = DocumentTermMatrix(Corpus(VectorSource(HRC$V2)),control = list(stemming=T))
+dtm = removeSparseTerms(dtm, 1-1/nrow(hrc))  
 dtm = as.data.frame(as.matrix(dtm))
 ```
