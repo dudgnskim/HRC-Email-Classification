@@ -17,7 +17,7 @@ sapply(pkg,require,character.only = TRUE)
 # 1. Import text
 ```{r}
 # 1.
-import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
+import_text_documents = function(directory = getwd(), doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
 
   file_names = list.files(path=directory, pattern=file_pattern, full.names=F, recursive=T)
   cat(paste0("Found ", length(file_names), " .tsv files in \"", directory, "\" to import.\n"))
