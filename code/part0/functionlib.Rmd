@@ -100,7 +100,6 @@ train[[1]]$content <- lapply(lapply(train[[1]]$content, exclude_redundancy), rem
 stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",") 
 
 # Load the stopwords provided in tm package.
-require(tm)
 stopwords_builtin = stopwords()
 
 # Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
