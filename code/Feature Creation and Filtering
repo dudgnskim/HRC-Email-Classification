@@ -47,3 +47,9 @@ for (email in 1:nrow(HRC)) {
   HRC[email,2] = removeWords(HRC[email, 2], stopwords)
 }
 ```
+
+###Creating Word Features
+```{r}
+dtm = DocumentTermMatrix(Corpus(VectorSource(HRC$V2)),control = list(stemming=T))
+dtm = as.data.frame(as.matrix(dtm))
+```
