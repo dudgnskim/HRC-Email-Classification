@@ -3,7 +3,7 @@ library(randomForest)
 
 
 features <- read.csv("Final_Features.csv", header = TRUE)
-
+testfeatures <- read.csv("Final_Test_Features.csv", header = TRUE)
 cv.5 <- rep(NA,5)
 nobs <- nrow(features)
 ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
@@ -30,12 +30,17 @@ for (k in 1:10) {
 }
 
 
+colnames(MSE) <- c("Number of Trees", "MSE")
 plot(MSE)
 MSE$k[which.min(MSE$MSE)]
-MSE
 
-response <- test.data$Y
-test.data <- select(test.data, -(Y))
-predictions <- predict(fit.rf, test.data)
+testpredictions <- data.frame(
+email = testfeatures$V1,
+prediction = c(rep(0, nrow(testfeatures))
+)
 
-err.rate <- sum(predictions != response) / length(response)
+prediction1 <- predict(randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = 50)
+         , testfeatures)
+
+testpredictions$prediction <- prediction1
+
