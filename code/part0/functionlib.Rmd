@@ -64,7 +64,7 @@ remove_extra = function(x) {
   x <- gsub("[[:digit:]]", "", x) # Removes numbers
   x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
   #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
-  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+  x <- trimws(gsub("\\s+", " ", x)) # Removes multiple whitespaces.
   return(x)
 }
 exclude_redundancy = function(x) {
@@ -238,13 +238,6 @@ power_features_sentence = function(doc) {
   n = length(doc)
   power = matrix(NA, nrow = n, ncol = 6, dimnames = list(seq(1, n)))
   
-  # Run this processing outside of the loop to make it faster.
-  hrcs = tm_map(doc, content_transformer(tolower))
- 
-  # Remove the project subject text.
-  hrcs = tm_map(hrcs, removesubject) 
-  
-  hrcs = tm_map(hrcs, stripWhitespace)
   # Stemming takes a particularly long time.
   hrcs = tm_map(hrcs, stemDocument) 
  
@@ -256,29 +249,26 @@ power_features_sentence = function(doc) {
     text = as.data.frame(hrc)[2]
     sents = convert_text_to_sentences(text)
     
-    # CK: Can we convert this to tm_map(sents, removePunctation)?
-    sents2 = lapply(sents, remove_punc)
-    
     # Number of sentences.
-    power6 = length(sents2)
+    power6 = length(sents)
     
     # Average sentence length.
     # TODO: convert to directly calculate average strength length without regex.
-    power7 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
+    power7 = sum(stri_count(sents, regex="\\S+")) / max(1, length(sents))
     
+    ### We need to re-create power feature from this point on because we deleted all numbers and puntuations. (so that is 4 more power features according to this chunk.)###
     # Number of 4-digit numbers (years). 
-    power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
+    #power8 = length(na.omit(str_extract(sents, "\\d{4}")))
     
     # Number of digits.
     # CK: actually, this is number of sentences that contain a digit.
-    power9 = sum(grepl("[[:digit:]]", sents2))
+    #power9 = sum(grepl("[[:digit:]]", sents))
     
     # Number of question marks.
-    power10 = sum(str_count(text, fixed("?")))
+    #power10 = sum(str_count(text, fixed("?")))
     
     #s Number of exclamation marks.
-    power11 = sum(str_count(text, fixed("!")))
-    
+    #power11 = sum(str_count(text, fixed("!")))
     ### 
     
     #title = names(hrc)
