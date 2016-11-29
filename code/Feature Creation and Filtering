@@ -1,0 +1,165 @@
+###Install Packages
+```{r}
+#Install Packages
+pkg = c("ggplot2","tm", "SnowballC", "stringi", "stringr", "openNLP", "NLP", "qdap", "dplyr", "foreach", "XML")
+new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
+sapply(pkg,require,character.only = TRUE)
+```
+
+###Load the file
+```{r}
+HRC <- read.table(file.choose(), header = FALSE, stringsAsFactors = FALSE)
+HRC_power_feat <- HRC
+```
+###Load stopwords vector
+```{r}
+#Load stopwords downloaded from online sources into R as a vector
+stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",")
+
+#Load stopwords from builtin in the "tm" package
+stopwords_builtin = stopwords()
+
+#Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
+stopwords = unique(append(stopwords_from_online, stopwords_builtin))
+
+#Remove all stopwords appeared in the stopwords list
+for (email in 1:nrow(HRC_train)) {
+  HRC_train[email,2] = removeWords(HRC_train[email, 2], stopwords)
+}
+```
+###Remove unnecessary stuff and change all to lower case
+```{r}
+remove_extra = function(x) {
+  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
+  x <- gsub("[[:punct:]]", "", x) # Removes punctuations
+  x <- gsub("[[:digit:]]", "", x) # Removes numbers
+  x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
+  #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
+  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+  return(x)
+}
+exclude_redundancy = function(x) {
+  # Create a character vector that consists of meaningless word chunks.
+  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
+             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "f-",
+             "release in full", "release in part", "state-", "january", "february", 
+             "march", "april", "may", "june", "july", "august", "september", "october", 
+             "november", "december", "subject", "fvv", "sent", "scb")
+  # Remove elements in redun from the email set
+  x <- tolower(x)
+  for (red in redun) {
+  x <- gsub(red, "", x)
+  }
+  # Since we don't need any words more than once.
+  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
+  return(x)
+}
+
+for (email in 1:nrow(HRC)) {
+  HRC[email, 2] <- exclude_redundancy(HRC[email, 2])
+  HRC[email, 2] <- remove_extra(HRC[email, 2])
+  HRC[email,2] = removeWords(HRC[email, 2], stopwords)
+}
+```
+
+###Creating Word Features
+```{r}
+dtm = DocumentTermMatrix(Corpus(VectorSource(HRC$V2)),control = list(stemming=T))
+dtm1 = as.data.frame(as.matrix(dtm))
+dtm = removeSparseTerms(dtm, .99)
+dtm = as.data.frame(as.matrix(dtm))
+```
+
+###Creating Power Features based on sentences
+```{r}
+power_features_sentence = function(corpus) {
+  n = length(corpus)
+  power = matrix(NA, nrow = n, ncol = 4, dimnames = list(seq(1, n)))
+  hrcs = tm_map(corpus, stripWhitespace)
+  hrcs = tm_map(hrcs, stemDocument) 
+  for (i in 1:n) {
+
+    hrc = hrcs[i]
+
+    text = as.data.frame(hrc)[2]
+    sents = convert_text_to_sentences(text)
+
+    # CK: Can we convert this to tm_map(sents, removePunctation)?
+    sents2 = lapply(sents, remove_punc)
+
+    # Number of sentences.
+    power1 = length(sents2)
+
+    # Average sentence length.
+    # TODO: convert to directly calculate average strength length without regex.
+    power2 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
+
+    # Number of question marks.
+    power3 = sum(str_count(text, fixed("?")))
+
+    #s Number of exclamation marks.
+    power4 = sum(str_count(text, fixed("!")))
+
+    power[i, ] = c(power1, power2, power3, power4)
+    #rownames(power)[i] = title
+  }
+  rownames(power) = names(hrcs)
+  colnames(power) = c("sentence_count", "sentence_avg_length", "question_marks", "exclamation_points")
+  return(power)
+}
+
+for (email in 1:nrow(HRC_power_feat)) {
+  HRC_power_feat[email, 2] <- exclude_redundancy(HRC_power_feat[email, 2])
+  HRC_power_feat[email, 2] = removeWords(HRC_power_feat[email, 2], stopwords)
+  HRC_power_feat[email, 2] <- gsub("[[:digit:]]", "", HRC_power_feat[email, 2])
+  HRC_power_feat[email, 2] <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", HRC_power_feat[email, 2])
+  HRC_power_feat[email, 2] <- gsub("\\s+", " ", HRC_power_feat[email, 2]) # Removes multiple whitespaces.
+}
+#This takes approximately 5 minutes
+power_feat_sentences <- power_features_sentence(Corpus(VectorSource(HRC_power_feat$V2)))
+```
+
+###Creating Power Features based on Words
+```{r}
+power_features_dtm = function(dtm) {
+
+  new = data.frame("words_count" = c(rep(0,nrow(dtm))), "chars_count" = c(rep(0,nrow(dtm))), "words_avg_length" = c(rep(0,nrow(dtm))), "words_distinct" = c(rep(0,nrow(dtm))), "sd_words" = c(rep(0,nrow(dtm))),"word_diversity" = c(rep(0,nrow(dtm))))
+  #colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words", "word_diversity")
+  words_chars = nchar(colnames(dtm))
+
+  for(i in 1:nrow(dtm)){
+    ### power5: total number of words
+    new[i,1] = sum(as.numeric(dtm[i,]))
+
+    ### power6: total number of characters
+    new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
+
+    ### power7: returns the vector of average word length of each txt file
+    # Use max so that if there are 0 distinct words we don't try to divide by 0.
+    new[i,3] = new[i,2]/max(new[i,1], 1)
+
+    ### power8: number of unique words
+    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+
+    ### power9: standard deviation of word length
+    # CK: why not just use the sd() function here?
+    sqrdmean = sum(as.matrix(words_chars^2) * as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    new[i,5] = sqrdmean-(mean^2)
+
+    ### power10: word diversity
+    new[i,6] = new[i,4]/max(new[i,1], 1)
+
+  }
+  return(new)
+}
+
+pwr_feat_dtm <- power_features_dtm(dtm1) #returns the power feature using words in the emails
+```
+
+###Combine word features and power features
+```{r}
+final_features <- cbind(HRC$V1, power_feat_sentences, pwr_feat_dtm, dtm)
+```

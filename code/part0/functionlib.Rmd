@@ -17,10 +17,10 @@ sapply(pkg,require,character.only = TRUE)
 # 1. Import text
 ```{r}
 # 1.
-import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
+import_text_documents = function(directory = getwd(), doc_dirs = list(no_type=""), file_pattern = "\\.tsv$") {
 
   file_names = list.files(path=directory, pattern=file_pattern, full.names=F, recursive=T)
-  cat(paste0("Found ", length(file_names), " text files in \"", directory, "\" to import.\n"))
+  cat(paste0("Found ", length(file_names), " .tsv files in \"", directory, "\" to import.\n"))
 
   if (length(file_names) == 0) {
     stop(paste("did not find any files to load. \nMake sure you have unzipped the training",
@@ -96,33 +96,14 @@ train[[1]]$content <- lapply(lapply(train[[1]]$content, exclude_redundancy), rem
 
 # 2. Load Stopwords
 ```{r}
-require(tm) # For the stopwords provided in tm package.
-# Creates stopwords with the input_file, and the default stopwords provided from tm package.
-# For providing input/output file directory, consider this code file's location is the working directory. Hence,
-load_stopwords = function(input_file = '../../data/common-english-words.txt',
-                          output_file = '../../data/stopwords.RData', reload_file = F) {
-  # Just re-use the output file if it already exists.
-  # Set reload_file = T if you want to force the function to reload the input file.
-  if (reload_file && length(output_file) > 0 && file.exists(output_file)) {
-    e <- new.env()
-    load(output_file, envir = e)
-    e
-  } else {
-    # Stopwords from common-english-words.txt
-    com_sw <- as.character(read.table(input_file, sep = ',', stringsAsFactors = FALSE))
-    # Stopwords from the tm pacakge in R
-    tm_sw <- stopwords("en")
-    
-    # Merge two and find unique stopwords
-    stopwords <- unique(append(com_sw, tm_sw))
-    
-    # Save the merged stopwords
-    save(stopwords, file=output_file)
-  }
-}
-# Load stopwords
-load_stopwords() # I tried to find a way to actually load the stopwords inside the function, but it doesn't seem so easy.. (HOON)
-load('../../data/stopwords.RData')
+# Load stopwords downloaded from online sources into R as a vector, assuming the file is in our current directory (an alternative can be scan(file.choose(), ...) which yields more flexibility.
+stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",") 
+
+# Load the stopwords provided in tm package.
+stopwords_builtin = stopwords()
+
+# Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
+stopwords = unique(append(stopwords_from_online, stopwords_builtin))
 ```
 
 # 3. Clean Documents
