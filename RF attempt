@@ -6,7 +6,6 @@ features <- read.csv("Final_Features.csv", header = TRUE)
 
 cv.5 <- rep(NA,5)
 nobs <- nrow(features)
-
 ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
 
 cv1.train <- features[-ind.cv[[1]],]
@@ -22,7 +21,7 @@ fit.0 <- randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree =
 
 yhat.v <- c()
 ypred <- data.frame(NA,NA)
-MSE <- data.frame(c(0:10),c(0:10))
+MSE <- data.frame(c(1:10),c(1:10))
 for (k in 1:10) {
   yhat.v = predict(randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = k*50)
 , features[ind.cv[[1]],])
@@ -30,10 +29,18 @@ for (k in 1:10) {
   MSE[k,2] <- sum(yhat.v != features[ind.cv[[1]],]$HRC.V1)/nrow(features[ind.cv[[1]],])
 }
 
-colnames(MSFE) <- c("Number of trees", "MSE")
-plot(MSE)
-MSFE$k[which.min(MSFE$MSFE)]
+attempt1 <- predict(randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = 100)
+                    , features[ind.cv[[1]],-1])
 
+nrow(features[ind.cv[[1]],])
+length(attempt1)
+
+
+sum(attempt1 != features[ind.cv[[1]],1]) / nrow(features[ind.cv[[1]],])
+
+plot(MSE)
+MSE$k[which.min(MSE$MSE)]
+MSE
 
 response <- test.data$Y
 test.data <- select(test.data, -(Y))
