@@ -14,15 +14,19 @@ cv3.train <- features[-ind.cv[[3]],]
 cv4.train <- features[-ind.cv[[4]],]
 cv5.train <- features[-ind.cv[[5]],]
 
+trial0 <- rfcv(features[,-1], features$HRC.V1, 5)
+
+fit.0 <- randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = n.tree)
+
 
 yhat.v <- c()
 ypred <- data.frame(NA,NA)
 MSE <- data.frame(c(1:10),c(1:10))
 for (k in 1:10) {
   yhat.v = predict(randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = k*50)
-, features[ind.cv[[1]],-1])
+                   , features[ind.cv[[1]],-1])
   MSE[k,1] <- k*50
-  MSE[k,2] <- sum(yhat.v != features[ind.cv[[1]],]$HRC.V1)/nrow(features[ind.cv[[1]],])
+  MSE[k,2] <- sum(yhat.v != features[ind.cv[[1]],1]) / nrow(features[ind.cv[[1]],])
 }
 
 
