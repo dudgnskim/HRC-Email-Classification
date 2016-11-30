@@ -1,8 +1,8 @@
-install.packages("randomForest")
+#install.packages("randomForest")
 library(randomForest)
+#setwd('~/coding/stat154coding/154proj/')
 
-
-features <- read.csv("Final_Features.csv", header = TRUE)
+features <- read.csv("data/train/Final_Features.csv", header = TRUE)
 testfeatures <- read.csv("Final_Test_Features.csv", header = TRUE)
 cv.5 <- rep(NA,5)
 nobs <- nrow(features)
@@ -34,10 +34,7 @@ colnames(MSE) <- c("Number of Trees", "MSE")
 plot(MSE)
 MSE$k[which.min(MSE$MSE)]
 
-testpredictions <- data.frame(
-email = testfeatures$V1,
-prediction = c(rep(0, nrow(testfeatures))
-)
+testpredictions <- data.frame(email = testfeatures$V1, prediction = c(rep(0, nrow(testfeatures))))
 
 prediction1 <- predict(randomForest(as.factor(cv1.train$HRC.V1) ~ ., data = cv1.train, ntree = 50)
          , testfeatures)
