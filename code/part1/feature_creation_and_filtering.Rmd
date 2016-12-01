@@ -9,66 +9,70 @@ sapply(pkg,require,character.only = TRUE)
 
 ###Load the file
 ```{r}
-HRC <- read.table(file.choose(), header = FALSE, stringsAsFactors = FALSE)
-HRC_power_feat <- HRC
+HRC = Corpus(DirSource('../../data/train', pattern = '.tsv'))
 ```
-###Load stopwords vector
+
+###Stopwords vector
 ```{r}
 #Load stopwords downloaded from online sources into R as a vector
-stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",")
+stopwords_from_online = scan("../../data/common-english-words.txt", what = "character", sep = ",")
 
 #Load stopwords from builtin in the "tm" package
 stopwords_builtin = stopwords()
 
 #Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
 stopwords = unique(append(stopwords_from_online, stopwords_builtin))
-
-#Remove all stopwords appeared in the stopwords list
-for (email in 1:nrow(HRC_train)) {
-  HRC_train[email,2] = removeWords(HRC_train[email, 2], stopwords)
-}
+rm(stopwords_builtin, stopwords_from_online)
 ```
+
 ###Remove unnecessary stuff and change all to lower case
 ```{r}
-remove_extra = function(x) {
-  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
-  x <- gsub("[[:punct:]]", "", x) # Removes punctuations
-  x <- gsub("[[:digit:]]", "", x) # Removes numbers
-  x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
-  #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
-  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
-  return(x)
-}
-exclude_redundancy = function(x) {
-  # Create a character vector that consists of meaningless word chunks.
-  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
-             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
-             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "f-",
-             "release in full", "release in part", "state-", "january", "february", 
-             "march", "april", "may", "june", "july", "august", "september", "october", 
-             "november", "december", "subject", "fvv", "sent", "scb")
-  # Remove elements in redun from the email set
-  x <- tolower(x)
-  for (red in redun) {
-  x <- gsub(red, "", x)
+clean = function(list) {
+  remove_extra = function(x) {
+    # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In   that order)
+    x <- gsub("[[:punct:]]", "", x) # Removes punctuations
+    x <- gsub("[[:digit:]]", "", x) # Removes numbers
+    x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1 or 2 letters
+    #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
+    x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+    x <- trimws(x) # Remove leading and end whitespaces.
+    return(x)
   }
-  # Since we don't need any words more than once.
-  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
-  return(x)
-}
-
-for (email in 1:nrow(HRC)) {
-  HRC[email, 2] <- exclude_redundancy(HRC[email, 2])
-  HRC[email, 2] <- remove_extra(HRC[email, 2])
-  HRC[email,2] = removeWords(HRC[email, 2], stopwords)
+  exclude_redundancy = function(x) {
+    # Create a character vector that consists of meaningless word chunks.
+    redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
+               "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "f-",
+               "release in full", "release in part", "state-", "january", "february", 
+               "march", "april", "may", "june", "july", "august", "september", "october", 
+               "november", "december", "subject", "fvv", "sent", "scb")
+    # Remove elements in redun from the email set
+    x <- tolower(x)
+    for (red in redun) {
+    x <- gsub(red, "", x)
+    }
+    # Since we don't need any words more than once.
+    x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
+    return(x)
+  }
+  list <- unlist(lapply(lapply(lapply(list, exclude_redundancy), remove_extra), removeWords, stopwords))
+  return(list)
 }
 ```
+
+###Data-cleaning
+```{r}
+res_var <- as.numeric(str_extract(HRC[[1]]$content, "[0-9]+"))
+HRC_power_feat <- HRC
+HRC[[1]]$content <- gsub("\\s+", " ", clean(HRC[[1]]$content))
+```
+
 
 ###Creating Word Features
 ```{r}
-dtm = DocumentTermMatrix(Corpus(VectorSource(HRC$V2)),control = list(stemming=T))
+dtm = DocumentTermMatrix(HRC, control = list(stemming=T))
 dtm1 = as.data.frame(as.matrix(dtm))
-dtm = removeSparseTerms(dtm, .99)
+dtm = removeSparseTerms(dtm, .97)
 dtm = as.data.frame(as.matrix(dtm))
 ```
 
@@ -110,15 +114,10 @@ power_features_sentence = function(corpus) {
   return(power)
 }
 
-for (email in 1:nrow(HRC_power_feat)) {
-  HRC_power_feat[email, 2] <- exclude_redundancy(HRC_power_feat[email, 2])
-  HRC_power_feat[email, 2] = removeWords(HRC_power_feat[email, 2], stopwords)
-  HRC_power_feat[email, 2] <- gsub("[[:digit:]]", "", HRC_power_feat[email, 2])
-  HRC_power_feat[email, 2] <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", HRC_power_feat[email, 2])
-  HRC_power_feat[email, 2] <- gsub("\\s+", " ", HRC_power_feat[email, 2]) # Removes multiple whitespaces.
-}
+HRC_power_feat[[1]]$content <- gsub("\\s+", " ", clean(HRC_power_feat[[1]]$content))
+
 #This takes approximately 5 minutes
-power_feat_sentences <- power_features_sentence(Corpus(VectorSource(HRC_power_feat$V2)))
+power_feat_sentences <- power_features_sentence(HRC_power_feat)
 ```
 
 ###Creating Power Features based on Words
@@ -161,5 +160,5 @@ pwr_feat_dtm <- power_features_dtm(dtm1) #returns the power feature using words 
 
 ###Combine word features and power features
 ```{r}
-final_features <- cbind(HRC$V1, power_feat_sentences, pwr_feat_dtm, dtm)
+final_features <- cbind(res_var, power_feat_sentences, pwr_feat_dtm, dtm)
 ```
