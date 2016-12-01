@@ -1,0 +1,44 @@
+## 0. Library
+```{r echo=FALSE}
+pkg = c("dplyr")
+new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
+sapply(pkg,require,character.only = TRUE)
+```
+
+## 1. Load Data
+```{r echo=FALSE}
+features <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
+# DATA IMPORT FROM RF needed
+# rf <- load('../../data/rf_data.RData')
+#hund <- sort(fit.0$importance, decreasing = T)[1:100]
+#rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
+```
+
+## 2. K-means
+```{r echo=FALSE}
+# convert dtm df to matrix
+tfhdf <- features[,which(colnames(features) %in% rftophund)]
+dtm_norm <- data.matrix(tfhdf)
+
+# normalize dtm
+for(z in 1:nrow(dtm_norm)){
+	row <- dtm_norm[z,]
+	dtm_norm[z,] <- row / sqrt(row %*% row)
+}
+
+# remove NAs
+if (sum(apply(dtm_norm, c(1,2), is.na)) > 0) {
+  dtm_norm <- na.omit(dtm_norm)
+}
+
+# run k-means
+num_clusters <- 5
+set.seed(1234)
+k_cluster <- kmeans(dtm_norm, centers = num_clusters, nstart = 500)
+table(k_cluster$cluster)
+
+# Check accuracy
+km_pred <- k_cluster$cluster
+sum(y == km_pred) / length(y)
+```
