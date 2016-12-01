@@ -48,3 +48,16 @@ rf.cv <- rfcv(dtm[,-ncol(dtm)], dtm$sender, cv.fold=5)
 
 with(rf.cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
 
+minval <- which.min(rf.cv$erro.cv)
+
+cv.5 <- rep(NA,5)
+nobs <- nrow(dtm)
+ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
+
+cv1.train <- dtm[-ind.cv[[1]],]
+cv2.train <- dtm[-ind.cv[[2]],]
+cv3.train <- dtm[-ind.cv[[3]],]
+cv4.train <- dtm[-ind.cv[[4]],]
+cv5.train <- dtm[-ind.cv[[5]],]
+
+
