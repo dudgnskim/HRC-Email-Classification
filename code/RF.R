@@ -46,4 +46,5 @@ dtm$sender <- HRC$V1
 
 rf.cv <- rfcv(dtm[,-ncol(dtm)], dtm$sender, cv.fold=5)
 
+with(rf.cv, plot(n.var, error.cv, log="x", type="o", lwd=2))
 
