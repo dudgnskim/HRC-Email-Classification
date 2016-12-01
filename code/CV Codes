@@ -61,3 +61,5 @@ ctrl <- trainControl(method = "cv", savePred=T, classProb=T)
 mod <- train(Species~., data=iris, method = "svmLinear", trControl = ctrl)
 head(mod$pred)
 
+#OOB
+rfx
