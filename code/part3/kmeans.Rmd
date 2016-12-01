@@ -1,4 +1,4 @@
-## 0. Library
+### 0. Library
 ```{r echo=FALSE}
 pkg = c("dplyr")
 new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
@@ -6,7 +6,7 @@ if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
 sapply(pkg,require,character.only = TRUE)
 ```
 
-## 1. Load Data
+### 1. Load Data
 ```{r echo=FALSE}
 features <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
@@ -15,30 +15,66 @@ features <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 #rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
 ```
 
-## 2. K-means
-```{r echo=FALSE}
-# convert dtm df to matrix
-tfhdf <- features[,which(colnames(features) %in% rftophund)]
-dtm_norm <- data.matrix(tfhdf)
-
-# normalize dtm
-for(z in 1:nrow(dtm_norm)){
-	row <- dtm_norm[z,]
-	dtm_norm[z,] <- row / sqrt(row %*% row)
+### 2. Function to prepare data matrix for kmeans
+```{r}
+prep_dm = function(data.frame, predictor_names) {
+  # Converting data.frame to data.matrix filtered by predictor names given
+  df = data.frame
+  top_hundred_filtered_df <- df[,which(colnames(df)) %in% predictor_names]
+  dm <- data.matrix(top_hundred_filtered_df)
+  
+  # Normalize dm
+  for(z in 1:nrow(dm)){
+	  row <- dm[z,]
+	  dm[z,] <- row / sqrt(row %*% row)
+  }
+  
+  # Remove NAs if there exist
+  if (sum(apply(dm, c(1,2), is.na)) > 0) {
+    dm <- na.omit(dm)
+  }
+  return(dm)
 }
+```
 
-# remove NAs
-if (sum(apply(dtm_norm, c(1,2), is.na)) > 0) {
-  dtm_norm <- na.omit(dtm_norm)
-}
+### 3. Prepare data for K-means
+```{r}
+# Prepped data
+dm_full <- prep_dm(features)
 
-# run k-means
-num_clusters <- 5
+# 5-fold CV data (for quick-running one segment)
 set.seed(1234)
-k_cluster <- kmeans(dtm_norm, centers = num_clusters, nstart = 500)
-table(k_cluster$cluster)
+nobs <- nrow(dm_full)
+ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
+#data
+cv1.train <- dm_full[-ind.cv[[1]],]
+cv2.train <- dm_full[-ind.cv[[2]],]
+cv3.train <- dm_full[-ind.cv[[3]],]
+cv4.train <- dm_full[-ind.cv[[4]],]
+cv5.train <- dm_full[-ind.cv[[5]],]
+#response_var
+y1.train <- y[-ind.cv[[1]]]
+y2.train <- y[-ind.cv[[2]]]
+y3.train <- y[-ind.cv[[3]]]
+y4.train <- y[-ind.cv[[4]]]
+y5.train <- y[-ind.cv[[5]]]
+```
 
-# Check accuracy
+### 4. Run CV
+```{r}
+
+```
+
+
+### 5. Run K-means with the best hyperparameter on full data
+```{r echo=FALSE}
+num_clusters <- 5
+k_cluster <- kmeans(dtm_norm, centers = num_clusters, nstart = 500)
+dt_all <- table(k_cluster$cluster, y)
+
+
+# To minimize: accuracy & withinss(total within-cluster sum of squares)
 km_pred <- k_cluster$cluster
 sum(y == km_pred) / length(y)
 ```
+
