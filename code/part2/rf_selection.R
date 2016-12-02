@@ -22,6 +22,7 @@ print(paste0("optimal values = nTree: ", opt_nTree, ", mtry: ", opt_mtry))
 # Load the data
 library(randomForest)
 final_tr <- read.csv('../../data/train/Final_Features.csv', header = T, stringsAsFactors = F)
+final_tr <- final_tr[,-which(colnames(final_tr) %in% 'break.')]
 y.tr <- final_tr[,ncol(final_tr)]
 
 # k-fold (k = 5)
