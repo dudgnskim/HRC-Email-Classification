@@ -48,14 +48,16 @@ for (i in 1:k) {
   # Stop the clock
   proc.time() - time
 }
+print(paste0("CV finished"))
+save(rf_func, pred_err_hat, file = "../../data/rf_models.RData")
 
 #rf_func[[i]] to call out the saved functions
 best_rf = rf_func[[which.min(pred_err_hat)]]
+save(best_rf, file = "../../data/best_rf.RData")
 
 # Prediction on Test set
 final_test = read.csv('../../data/test/final_test_features.csv', header = T, stringsAsFactors = F)
 test_pred = as.numeric(predict(best_rf, final_test))
 
-# Save the best_rf and test prediction
-save(best_rf, file = "../../data/best_rf.RData")
+# Save the test prediction
 save(test_pred, file = "../../predictions/predict.txt")
