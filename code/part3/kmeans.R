@@ -108,6 +108,8 @@ km_final_wit <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_wit[
 dtw_full <- table(km_final_wit$cluster, y.tr)
 kfw_dist <- km_final_wit$withinss
 kfw_err <- sum(diag(dtw_full)) / sum(dtw_full)
+print(paste0("Length of the prediction vector: ", length(km_final_wit$cluster)))
+print(km_final_wit$cluster)
 print(paste0("Kmeans error rate with withins distance: ", kfw_err))
 print(paste0("Within cluster distance: ", kfw_dist))
 
