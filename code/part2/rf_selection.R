@@ -19,6 +19,7 @@ print(paste0("optimal values = nTree: ", opt_nTree, ", mtry: ", opt_mtry))
 
 # Since we know the optimal hyperparameters of the RandomForest model, we conduct 5-fold CV to find the best model.
 # Load the data
+library(randomForest)
 final_tr <- read.csv('../../data/train/Final_Features.csv', header = T, stringsAsFactors = F)
 y.tr <- final_tr[,ncol(final_tr)]
 
@@ -33,7 +34,7 @@ rf_func <- list()
 pred_err_hat <- rep(NA, k)
 for (i in 1:k) {
   print(paste0("Running ", i, "th randomForest model"))
-  rf_cv <- randomForest(as.factor(final_tr[-ind.cv[[i]],]$sender) ~ ., data = cv1.train,
+  rf_cv <- randomForest(as.factor(final_tr[-ind.cv[[i]],]$sender) ~ ., data = final_tr[-ind.cv[[i]],],
                           type = "classification", ntree = opt_nTree, mtry = 1/3)
   rf_func <- append(rf_func, list(rf_cv))
   pred_cv = predict(rf_func, final_tr[ind.cv[[i]],-ncol(final_tr)])
