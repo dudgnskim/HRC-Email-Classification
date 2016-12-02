@@ -87,7 +87,9 @@ save(best_rf, file = "../../data/best_rf.RData")
 
 # Prediction on Test set
 final_test = read.csv('../../data/test/final_test_features.csv', header = T, stringsAsFactors = F)
-test_pred = as.numeric(predict(rfcv4, final_test))
+test_pred = as.numeric(predict(randomForest(as.factor(y4.train) ~ ., data = cv4.train[,-which(colnames(cv4.train) %in% c('function.')],
+                                            type = "classification", ntree = 200,
+                                            mtry = max(1, floor(ncol(cv4.train[,-which(colnames(cv4.train) %in% 'function.')])/3))), final_test)))
 
 # Save the test prediction
 save(test_pred, file = "../../predictions/predict.txt")
