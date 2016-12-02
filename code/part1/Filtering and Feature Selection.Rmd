@@ -1,0 +1,358 @@
+---
+title: "Filtering and Feature Creation"
+---
+###Set Working Directory to Where all the Files are
+```{r}
+setwd("/Users/Kuang/Desktop/Current Courses/Stat154/Projects/")
+```
+
+###Install Packages
+```{r}
+#Install Common Packages
+pkg = c("ggplot2","tm", "stringi", "stringr")
+new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
+if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
+sapply(pkg,require,character.only = TRUE)
+```
+
+###Load the file
+```{r}
+HRC <- read.table("HRC_train.tsv", header = FALSE, stringsAsFactors = FALSE) #Load training data
+
+HRC_power_feat <- HRC #Create a backup file for creating power features later on
+
+HRC_test <- read.table("HRC_test.tsv",header = FALSE, stringsAsFactors = FALSE) #Load test data
+
+HRC_power_feat_test <- HRC_test
+```
+
+###Load Stopwords
+```{r}
+# Load stopwords downloaded from online sources into R as a vector, assuming the file is in our current directory (an alternative can be scan(file.choose(), ...) which yields more flexibility.
+stopwords_from_online = scan(paste0(getwd(), "/common-english-words.txt"), what = "character", sep = ",") 
+
+# Load the stopwords provided in tm package.
+stopwords_builtin = stopwords()
+
+# Append the stopwords that were found online and that were builtin and remove repeated words; store the new vector into the variable "stopwords"
+stopwords = unique(append(stopwords_from_online, stopwords_builtin))
+```
+
+###Remove unnecessary stuff and change all to lower case
+```{r}
+remove_extra = function(x) {
+  # Removing multiple punctuations, numbers, single/two-lettered words and whitespaces. (In that order)
+  x <- gsub("[[:punct:]]", "", x) # Removes punctuations
+  x <- gsub("[[:digit:]]", "", x) # Removes numbers
+  x <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", x) # Removes any words with 1/2 letters
+  #x <- gsub("\\b(\\S+?)\\1\\S*\\b", "", x, perl = TRUE) # Removes any words with repeating letters
+  x <- gsub("\\s+", " ", x) # Removes multiple whitespaces.
+  return(x)
+}
+exclude_redundancy = function(x) {
+  # Create a character vector that consists of meaningless word chunks.
+  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "monday",
+             "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "f-",
+             "release in full", "release in part", "state-", "january", "february", 
+             "march", "april", "may", "june", "july", "august", "september", "october", 
+             "november", "december", "subject", "fvv", "sent", "scb")
+  # Remove elements in redun from the email set
+  x <- tolower(x)
+  for (red in redun) {
+  x <- gsub(red, "", x)
+  }
+  # Since we don't need any words more than once.
+  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
+  return(x)
+}
+
+exclude_redundancy_include_week_month = function(x) {
+  # Create a character vector that consists of meaningless word chunks.
+  redun <- c("unclassified u.s. department of state case no.", "doc no.", "date:",
+             "state dept. - produced to house select benghazi comm. subject to agreement on sensitive information & redactions.", "no foia waiver.", "subject:", "sent:", "f-",
+             "release in full", "release in part", "state-", "subject", "fvv", "sent", "scb")
+  # Remove elements in redun from the email set
+  x <- tolower(x)
+  for (red in redun) {
+  x <- gsub(red, "", x)
+  }
+  # Since we don't need any words more than once.
+  x <- toString(unique(unlist(strsplit(x, split = " ", fixed = T))))
+  return(x)
+}
+
+for (email in 1:nrow(HRC)) {
+  HRC[email, 2] <- exclude_redundancy(HRC[email, 2])
+  HRC[email, 2] <- remove_extra(HRC[email, 2])
+  HRC[email,2] <- removeWords(HRC[email, 2], stopwords)
+  HRC[email, 2] <- gsub("\\s+", " ", HRC$V2[email])
+}
+
+for (email in 1:nrow(HRC_test)) {
+  HRC_test[email, 1] <- exclude_redundancy(HRC_test[email, 1])
+  HRC_test[email, 1] <- remove_extra(HRC_test[email, 1])
+  HRC_test[email, 1] = removeWords(HRC_test[email, 1], stopwords)
+  HRC_test[email, 1] <- gsub("\\s+", " ", HRC_test$V1[email])
+}
+
+#Remove all things except punctuation which will be needed for later power features
+for (email in 1:nrow(HRC_power_feat)) {
+  HRC_power_feat[email, 2] <- exclude_redundancy_include_week_month(HRC_power_feat[email, 2])
+  HRC_power_feat[email, 2] <- gsub("[[:digit:]]", "", HRC_power_feat[email, 2]) # Removes numbers
+  HRC_power_feat[email, 2] <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", HRC_power_feat[email, 2]) # Removes any words with 1/2 letters
+  HRC_power_feat[email, 2] = removeWords(HRC_power_feat[email, 2], stopwords)
+  HRC_power_feat[email, 2] <- gsub("\\s+", " ", HRC_power_feat[email, 2])
+}
+
+for (email in 1:nrow(HRC_power_feat_test)) {
+  HRC_power_feat_test[email, 1] <- exclude_redundancy_include_week_month(HRC_power_feat_test[email, 1])
+  HRC_power_feat_test[email, 1] <- gsub("[[:digit:]]", "", HRC_power_feat_test[email, 1]) # Removes numbers
+  HRC_power_feat_test[email, 1] <- gsub("*\\b[[:alpha:]]{1,2}\\b *", " ", HRC_power_feat_test[email, 1]) # Removes any words with 1/2 letters
+  HRC_power_feat_test[email, 1] = removeWords(HRC_power_feat_test[email, 1], stopwords)
+  HRC_power_feat_test[email, 1] <- gsub("\\s+", " ", HRC_power_feat_test[email, 1])
+}
+```
+
+###Extracting Word Features (control for stemming)
+```{r}
+#Create document term matrix for training data
+dtm_train = DocumentTermMatrix(Corpus(VectorSource(HRC$V2)), control = list(stemming=T))
+dtm_train_full <- as.data.frame(as.matrix(dtm_train))
+
+#Create document term matrix for testing data
+dtm_test = DocumentTermMatrix(Corpus(VectorSource(HRC_test$V1)), control = list(stemming=T))
+dtm_test = as.data.frame(as.matrix(dtm_test))
+```
+
+##Create multiple document term matrix on trianing data with different sparsity (for later testing)
+```{r}
+#Sparsity of 97%
+dtm_train_97 = removeSparseTerms(dtm_train, .97)
+dtm_train_97 = as.data.frame(as.matrix(dtm_train_97))
+
+#Sparsity of 98%
+dtm_train_98 = removeSparseTerms(dtm_train, .98)
+dtm_train_98 = as.data.frame(as.matrix(dtm_train_98))
+
+#Sparsity of 99%
+dtm_train_99 = removeSparseTerms(dtm_train, .99)
+dtm_train_99 = as.data.frame(as.matrix(dtm_train_99))
+
+#Sparsity of 992%
+dtm_train_992 = removeSparseTerms(dtm_train, .992)
+dtm_train_992 = as.data.frame(as.matrix(dtm_train_992))
+```
+
+###Convert text to sentences
+```{r}
+convert_text_to_sentences = function(text, lang = "en") {
+  # Check if the string is only whitespace
+  if (text %in% c("", " ") || str_count(text, "\\s") == str_length(text)) {
+    return(c())
+  }
+  sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)
+  text <- as.String(text)
+  # Need to specify NLP package, because ggplot2 also has an annotate function.
+  sentence.boundaries = NLP::annotate(text, sentence_token_annotator)
+  sentences = text[sentence.boundaries]
+  return(sentences)
+}
+
+### external function(2): removes punctuations
+remove_punc = function(x) {
+  gsub("[[:punct:]]", "", x)
+}
+
+### main function: generates sentence-based power feature matrix
+### input: tm data
+### output: 4 columns of power features with rownames=filename
+```
+
+###Creating power features based on sentences
+```{r}
+power_features_sentence = function(corpus) {
+  n = length(corpus)
+  power = matrix(NA, nrow = n, ncol = 4, dimnames = list(seq(1, n)))
+  hrcs = tm_map(corpus, stripWhitespace)
+  hrcs = tm_map(hrcs, stemDocument) 
+  for (i in 1:n) {
+
+    hrc = hrcs[i]
+
+    text = as.data.frame(hrc)[2]
+    sents = convert_text_to_sentences(text)
+
+    # CK: Can we convert this to tm_map(sents, removePunctation)?
+    sents2 = lapply(sents, remove_punc)
+
+    # Number of sentences.
+    power1 = length(sents2)
+
+    # Average sentence length.
+    # TODO: convert to directly calculate average strength length without regex.
+    power2 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
+
+    # Number of question marks.
+    power3 = sum(str_count(text, fixed("?")))
+
+    #s Number of exclamation marks.
+    power4 = sum(str_count(text, fixed("!")))
+
+    power[i, ] = c(power1, power2, power3, power4)
+    #rownames(power)[i] = title
+  }
+  rownames(power) = names(hrcs)
+  colnames(power) = c("sentence_count", "sentence_avg_length", "question_marks", "exclamation_points")
+  return(power)
+}
+
+#This takes approximately 5 minutes
+power_feat_sentences_test <- power_features_sentence(Corpus(VectorSource(HRC_power_feat_test$V1)))
+
+power_feat_sentences <- power_features_sentence(Corpus(VectorSource(HRC_power_feat$V2)))
+```
+
+###Creating Power Features based on Words
+```{r}
+power_features_dtm = function(dtm) {
+
+  new = data.frame("words_count" = c(rep(0,nrow(dtm))), "chars_count" = c(rep(0,nrow(dtm))), "words_avg_length" = c(rep(0,nrow(dtm))), "words_distinct" = c(rep(0,nrow(dtm))), "sd_words" = c(rep(0,nrow(dtm))),"word_diversity" = c(rep(0,nrow(dtm))))
+  #colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words", "word_diversity")
+  words_chars = nchar(colnames(dtm))
+
+  for(i in 1:nrow(dtm)){
+    ### power5: total number of words
+    new[i,1] = sum(as.numeric(dtm[i,]))
+
+    ### power6: total number of characters
+    new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
+
+    ### power7: returns the vector of average word length of each txt file
+    # Use max so that if there are 0 distinct words we don't try to divide by 0.
+    new[i,3] = new[i,2]/max(new[i,1], 1)
+
+    ### power8: number of unique words
+    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+
+    ### power9: standard deviation of word length
+    # CK: why not just use the sd() function here?
+    sqrdmean = sum(as.matrix(words_chars^2) * as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    new[i,5] = sqrdmean-(mean^2)
+
+    ### power10: word diversity
+    new[i,6] = new[i,4]/max(new[i,1], 1)
+
+  }
+  return(new)
+}
+
+pwr_feat_dtm_test <- (dtm_test)
+pwr_feat_dtm <- power_features_dtm(dtm_train_992) #returns the power feature using words in the emails
+```
+
+###Creating Month and Weekday power features
+```{r}
+pwr_feat_month_week <- function(HRC_test){
+  
+monday <- rep(0, nrow(HRC_test))
+tuesday <- rep(0, nrow(HRC_test))
+wednesday <- rep(0, nrow(HRC_test))
+thursday <- rep(0, nrow(HRC_test))
+friday <- rep(0, nrow(HRC_test))
+saturday <- rep(0, nrow(HRC_test))
+sunday <- rep(0, nrow(HRC_test))
+Jan <- rep(0, nrow(HRC_test))
+Feb <- rep(0, nrow(HRC_test))
+Mar <- rep(0, nrow(HRC_test))
+Apr<- rep(0, nrow(HRC_test))
+May<- rep(0, nrow(HRC_test))
+Jun<- rep(0, nrow(HRC_test))
+Jul<- rep(0, nrow(HRC_test))
+Aug<- rep(0, nrow(HRC_test))
+Sep<- rep(0, nrow(HRC_test))
+Oct<- rep(0, nrow(HRC_test))
+Nov<- rep(0, nrow(HRC_test))
+Dec<- rep(0, nrow(HRC_test))
+
+if(nchar(HRC_test[email,1]) > 2){
+  words <- unlist(strsplit(HRC_test[email,1]," "))[1:7]
+}else{
+  words <- unlist(strsplit(HRC_test[email,2]," "))[1:7]
+}
+
+for (email in 1:nrow(HRC_test)) {
+
+  if("monday" %in% words){
+    monday[email] <- 1}
+  if("tuesday" %in% words){
+    tuesday[email] <- 1}
+  if("wednesday" %in% words){
+    wednesday[email] <- 1}
+  if("thursday" %in% words){
+    thursday[email] <- 1}
+  if("friday" %in% words){
+    friday[email] <- 1}
+  if("saturday" %in% words){
+    saturday[email] <- 1}
+  if("sunday" %in% words){
+    sunday[email] <- 1}
+  if("january" %in% words){
+    Jan[email] <- 1}
+  if("february" %in% words){
+    Feb[email] <- 1}
+  if("march" %in% words){
+    Mar[email] <- 1}
+  if("april" %in% words){
+    Apr[email] <- 1}
+  if("may" %in% words){
+    May[email] <- 1}
+  if("june" %in% words){
+    Jun[email] <- 1}
+  if("july" %in% words){
+    Jul[email] <- 1}
+  if("august" %in% words){
+    Aug[email] <- 1}
+  if("september" %in% words){
+    Sep[email] <- 1}
+  if("october" %in% words){
+    Oct[email] <- 1}
+  if("november" %in% words){
+    Nov[email] <- 1}
+  if("december" %in% words){
+    Dec[email] <- 1}
+}
+
+cbind(monday, tuesday, wednesday, thursday, friday, saturday, sunday, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)
+}
+
+pwr_feat_mon_day_train <- pwr_feat_month_week(HRC_power_feat)
+pwr_feat_mon_day_test <- pwr_feat_month_week(HRC_power_feat_test)
+```
+
+###Combine word features and power features
+```{r}
+final_features_train <- cbind(HRC$V1, power_feat_sentences, pwr_feat_dtm, pwr_feat_mon_day_train, dtm_train_992)
+colnames(final_features)[1] <- "sender"
+
+final_features_test <- cbind(power_feat_sentences_test, pwr_feat_dtm_test, pwr_feat_mon_day_test, dtm_test)
+```
+
+###Keep only Overlapping features between test and train to obtain our final features
+```{r}
+#Create a function that only keeps the overlapping word features
+overlapping_features <- function(dtm_train, dtm_test = dtm_test){
+drops <- c()
+for (i in 1:ncol(dtm_train)){
+  if (colnames(dtm_train)[i] %in% colnames(dtm_test) == FALSE) {
+    drops <- c(drops, colnames(dtm_train)[i])
+  }
+}
+dtm_train[ , !names(dtm_train) %in% drops]
+}
+
+final_features_train <- overlapping_features(final_features_train, final_features_test)
+
+final_features_test <- overlapping_features(final_features_test, final_features_train)
+```
