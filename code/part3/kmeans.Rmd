@@ -10,6 +10,7 @@ sapply(pkg,require,character.only = TRUE)
 ```{r echo=FALSE}
 features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
+load('../../../rf_sample.RData')
 # rf <- load('../../data/rf_data.RData')
 #hund <- sort(fit.0$importance, decreasing = T)[1:100]
 #rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
@@ -45,7 +46,8 @@ y.tr <- features_tr[,1]
 
 # k-fold CV data (for quick-running one segment)
 set.seed(1234)
-k = 5
+k = 5 # Number of Folds
+num_clusters <- 5 # Number of response variable classes
 cv_matrix = matrix(NA, nrow = n, ncol = 5, dimnames = list(seq(1, n)))
 nobs <- nrow(dm_full)
 ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
@@ -67,22 +69,28 @@ y5.train <- y.tr[-ind.cv[[5]]]
 
 ### 4. Run k-fold CV
 ```{r}
+l = 8 # Number of multiple of nstart from 20 to 100 (by 10).
 for (i in 1:k) {
   dm_cv <- dm_full[-ind.cv[[i]],]
   y_cv <- y.tr[-ind.cv[[i]]]
+  for (j in 1:l) {
+    kc <- kmeans(dm_cv, centers = num_clusters, nstart = (10+k*10))
+  }
 }
 ```
 
 
 ### 5. Run K-means with the best hyperparameter on full data
 ```{r echo=FALSE}
-num_clusters <- 5
-k_cluster <- kmeans(dm_full, centers = num_clusters, nstart = 500)
+k_cluster <- kmeans(dm_full, centers = num_clusters, nstart = (1+2))
 dt_all <- table(k_cluster$cluster, y.tr)
 
 
 # To minimize: accuracy & withinss(total within-cluster sum of squares)
 km_pred <- k_cluster$cluster
 sum(y == km_pred) / length(y)
+
+##
+save(fit.0, file = "../../../rf_sample.RData")
 ```
 
