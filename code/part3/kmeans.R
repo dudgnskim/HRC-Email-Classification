@@ -66,7 +66,7 @@ rownames(err) <- c("CV1","CV2","CV3","CV4","CV5")
 colnames(err) <- c(seq(20, 100, by = 10))
 rownames(withins) <- c("CV1", "CV2", "CV3", "CV4", "CV5")
 colnames(withins) <- c(seq(20,100,by=10))
-
+print(paste0(k, " fold Cross-validation for nstart from 20 to 100"))
 for (i in 1:k) {
   dm_cv <- dm_full[-ind.cv[[i]],]
   y_cv <- y.tr[-ind.cv[[i]]]
@@ -75,7 +75,7 @@ for (i in 1:k) {
     dt_cv <- as.matrix(table(kc$cluster, y_cv))
     err[i,j] = sum(diag(dt_cv)) / sum(dt_cv)
     withins[i,j] = sum(kc$withinss)
-    print(paste0("CV for ", rownames(err)[j], ", nstart: ", colnames(err)[i], " completed"))
+    print(paste0("CV for ", rownames(err)[i], ", nstart: ", colnames(err)[j], " completed"))
   }
 }
 
@@ -116,3 +116,48 @@ print(paste0("Within cluster distance: ", kfw_dist))
 
 ##
 #save(fit.0, file = "../../../rf_sample.RData")
+
+# Run kmeans on Test set
+# Load Final_features_test.csv for prediction
+ff_test <- read.csv('../../data/test/final_test_features.csv', header = T)
+dm_test <- prep_dm(ff_test, rftophund)
+
+# CV for test set
+k = 4
+l = 9
+test_w <- t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
+rownames(test_w) <- c("CV1", "CV2", "CV3", "CV4")
+colnames(test_w) <- c(seq(20,100,by=10))
+nobs_t = nrow(dm_test)
+ind.cv_t <- split(sample(1:nobs_t, replace = FALSE), f = rep(1:k, each = nobs/k))
+print(paste0(k, " fold Cross-validation for nstart from 20 to 100"))
+for (i in 1:k) {
+  dm_cv <- dm_test[-ind.cv_t[[i]],]
+  for (j in 1:l) {
+    kc <- kmeans(dm_cv, centers = num_clusters, nstart = (10+j*10))
+    test_w[i,j] = sum(kc$withinss)
+    print(paste0("CV for ", rownames(test_w)[i], ", nstart: ", colnames(test_w)[j], " completed"))
+  }
+}
+# Selecting optimal nstart for the test set
+avg_wt <- vector()
+for (o in 1:ncol(test_w)) {
+  avg_wt[o] = mean(test_w[,o])
+}
+# Optinal nstart value from CV
+opt_nstart_t = which(avg_wt %in% min(avg_wt)) * 10 + 10
+print(paste0("Optimal nstart for withinss test is ", opt_nstart_t[1]))
+
+# Two models
+km_test_1 <- kmeans(dm_test, centers = num_clusters, nstart = opt_nstart_wit[1])
+km_test_2 <- kmeans(dm_test, centers = num_clusters, nstart = opt_nstart_t[1])
+
+# Acc
+pred_test <- read.table('../../predictions/predict.txt')
+pred_test <- pred_test[,1]
+acc_1 <- sum(km_test_1$cluster == pred_test) / length(pred_test)
+acc_2 <- sum(km_test_2$cluster == pred_test) / length(pred_test)
+
+# Comparison
+print(paste0(acc_1, "% match for nstart from training optimal withinss"))
+print(paste0(acc_2, "% match for nstart from test optimal withinss"))
