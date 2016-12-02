@@ -42,7 +42,7 @@ set.seed(1234)
 k = 5 # Number of Folds
 num_clusters <- 5 # Number of response variable classes
 nobs <- nrow(dm_full)
-ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
+ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:k, each = nobs/k))
 
 #data *REMOVE FOR SUBMISSION*
 #cv1.train <- dm_full[-ind.cv[[1]],]
@@ -75,6 +75,7 @@ for (i in 1:k) {
     dt_cv <- as.matrix(table(kc$cluster, y_cv))
     err[i,j] = sum(diag(dt_cv)) / sum(dt_cv)
     withins[i,j] = sum(kc$withinss)
+    print(paste0("CV for ", rownames(err)[j], ", nstart: ", colnames(err)[i], " completed"))
   }
 }
 
