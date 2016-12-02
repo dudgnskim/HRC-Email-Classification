@@ -10,7 +10,7 @@ sapply(pkg,require,character.only = TRUE)
 ```{r echo=FALSE}
 features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
-load('../../../rf_sample.RData')
+load('../../data/rf_sample.RData')
 # rf <- load('../../data/rf_data.RData')
 #hund <- sort(fit.0$importance, decreasing = T)[1:100]
 #rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
@@ -84,6 +84,9 @@ for (i in 1:k) {
     withins[i,j] = sum(kc$withinss)
   }
 }
+
+print(paste0("this is the CV error df for ", err)
+print(paste0("this is the CV error df for ", withins)
 
 # Find the lowest error rate & withins
 avg_err <- vector()
