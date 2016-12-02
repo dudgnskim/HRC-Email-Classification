@@ -47,7 +47,7 @@ best_rf = rf_func[[which.min(pred_err_hat)]]
 
 # Prediction on Test set
 final_test = read.csv('../../data/test/final_test_features.csv', header = T, stringsAsFactors = F)
-test_pred = predict(best_rf, final_test)
+test_pred = as.numeric(predict(best_rf, final_test))
 
 # Save the best_rf and test prediction
 save(best_rf, file = "../../data/best_rf.RData")
