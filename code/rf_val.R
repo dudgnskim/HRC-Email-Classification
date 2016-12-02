@@ -3,38 +3,46 @@ library(randomForest)
 final_tr <- read.csv(file.choose(), header = TRUE)
 x.tr <- final_tr[,-ncol(final_tr)]
 
+# Model list
+models_sq <- list()
+models_half <- list()
+models_third <- list()
+
 # OOB errors
 err_1 <- vector()
 err_2 <- vector()
 err_3 <- vector()
 
 # Confusion matrix
-cm1 = matrix(NA)
-cm2 = matrix(NA)
-cm3 = matrix(NA)
+cm1 = list()
+cm2 = list()
+cm3 = list()
 
 nTree = c(50, 75, 100, 150, 200, 300)
 set.seed(1234)
 ## nTree OOB
 # m = sqrt(p)
-for (nt in nTree) {
-  rf = randomForest(sender ~ ., data = final_tr, ntree = nt, mtry = max(1, floor(sqrt(ncol(x.tr)))))
+for (i in 1:length(nTree)) {
+  rf = randomForest(sender ~ ., data = final_tr, ntree = nTree[i], mtry = max(1, floor(sqrt(ncol(x.tr)))))
+  models_sq = append(models, list(rf))
   err_1 = append(err_1, tail(rf$err.rate[,1],1))
-  cm1 = rf$confusion
+  cm1 = list(rf$confusion)
 }
 
 # m = 1/2
 for (nt in nTree) {
   rf = randomForest(sender ~ ., data = final_tr, ntree = nt, mtry = max(1, floor(ncol(x.tr)/2)))
+  models_half = append(models, list(rf))
   err_2 = append(err_1, tail(rf$err.rate[,1],1))
-  cm2 = rf$confusion
+  cm2 = list(rf$confusion)
 }
 
 # m = 1/3
 for (nt in nTree) {
   rf = randomForest(sender ~ ., data = final_tr, ntree = nt, mtry = max(1, floor(ncol(x.tr)/3)))
+  models_third = append(models, list(rf))
   err_3 = append(err_1, tail(rf$err.rate[,1],1))
-  cm3 = rf$confusion
+  cm3 = list(rf$confusion)
 }
 
 err_mat <- rbind(err_1, err_2, err_3)
