@@ -1,4 +1,5 @@
 #### Select the RandomForest Model from the OOB validated data ####
+set.seed(1234)
 load('../../data/rf_final.RData')
 rownames(err_mat) <- c("p=sqrt(p)", "p=1/2", "p=1/3", "avg_error")
 
@@ -34,6 +35,8 @@ rf_func <- list()
 pred_err_hat <- rep(NA, k)
 for (i in 1:k) {
   print(paste0("Running ", i, "th randomForest model"))
+  # Time each CV
+  time <- proc.time()
   rf_cv <- randomForest(as.factor(final_tr[-ind.cv[[i]],]$sender) ~ ., data = final_tr[-ind.cv[[i]],],
                           type = "classification", ntree = opt_nTree, mtry = 1/3)
   rf_func <- append(rf_func, list(rf_cv))
@@ -41,6 +44,8 @@ for (i in 1:k) {
   pred_err_cv = sum(pred_cv != final_tr[ind.cv[[i]], ncol(final_tr)]) / nrow(final_tr[ind.cv[[i]],])
   pred_err_hat[i] <- pred_err_cv
   print(paste0(i, "th randomForest model has the Error rate of ", pred_err_cv))
+  # Stop the clock
+  proc.time() - time
 }
 
 #rf_func[[i]] to call out the saved functions
