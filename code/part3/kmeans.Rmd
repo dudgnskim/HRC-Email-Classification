@@ -8,7 +8,7 @@ sapply(pkg,require,character.only = TRUE)
 
 ### 1. Load Data
 ```{r echo=FALSE}
-features <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
+features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
 # rf <- load('../../data/rf_data.RData')
 #hund <- sort(fit.0$importance, decreasing = T)[1:100]
@@ -40,37 +40,45 @@ prep_dm = function(data.frame, predictor_names) {
 ### 3. Prepare data for K-means
 ```{r}
 # Prepped data
-dm_full <- prep_dm(features)
+dm_full <- prep_dm(features_tr)
+y.tr <- features_tr[,1]
 
-# 5-fold CV data (for quick-running one segment)
+# k-fold CV data (for quick-running one segment)
 set.seed(1234)
+k = 5
+cv_matrix = matrix(NA, nrow = n, ncol = 5, dimnames = list(seq(1, n)))
 nobs <- nrow(dm_full)
 ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
-#data
+
+#data *REMOVE FOR SUBMISSION*
 cv1.train <- dm_full[-ind.cv[[1]],]
 cv2.train <- dm_full[-ind.cv[[2]],]
 cv3.train <- dm_full[-ind.cv[[3]],]
 cv4.train <- dm_full[-ind.cv[[4]],]
 cv5.train <- dm_full[-ind.cv[[5]],]
-#response_var
-y1.train <- y[-ind.cv[[1]]]
-y2.train <- y[-ind.cv[[2]]]
-y3.train <- y[-ind.cv[[3]]]
-y4.train <- y[-ind.cv[[4]]]
-y5.train <- y[-ind.cv[[5]]]
+
+#response_var *REMOVE FOR SUBMISSION*
+y1.train <- y.tr[-ind.cv[[1]]]
+y2.train <- y.tr[-ind.cv[[2]]]
+y3.train <- y.tr[-ind.cv[[3]]]
+y4.train <- y.tr[-ind.cv[[4]]]
+y5.train <- y.tr[-ind.cv[[5]]]
 ```
 
-### 4. Run CV
+### 4. Run k-fold CV
 ```{r}
-
+for (i in 1:k) {
+  dm_cv <- dm_full[-ind.cv[[i]],]
+  y_cv <- y.tr[-ind.cv[[i]]]
+}
 ```
 
 
 ### 5. Run K-means with the best hyperparameter on full data
 ```{r echo=FALSE}
 num_clusters <- 5
-k_cluster <- kmeans(dtm_norm, centers = num_clusters, nstart = 500)
-dt_all <- table(k_cluster$cluster, y)
+k_cluster <- kmeans(dm_full, centers = num_clusters, nstart = 500)
+dt_all <- table(k_cluster$cluster, y.tr)
 
 
 # To minimize: accuracy & withinss(total within-cluster sum of squares)

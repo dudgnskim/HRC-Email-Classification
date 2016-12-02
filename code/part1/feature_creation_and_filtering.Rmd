@@ -217,10 +217,9 @@ write.csv(final_features_train, file = "../../data/train/final_features_train.cs
 ###Final_features_test
 ```{r}
 # Import & Clean
-hrc_test <- Corpus(DirSource('../../data/test', pattern = '.tsv'))
-res_test <- as.numeric(str_extract(hrc_test[[1]]$content, "[0-9]+"))
-test_power_feat <- Corpus(VectorSource(clean_pw(hrc_test[[1]]$content)))
-hrc_test <- Corpus(VectorSource(clean(hrc_test[[1]]$content)))
+htest <- read.table('../../data/test/HRC_test.tsv', header = TRUE, stringsAsFactors = FALSE)[,1]
+test_power_feat <- Corpus(VectorSource(clean_pw(htest)))
+hrc_test <- Corpus(VectorSource(clean(htest)))
 
 # Featurize
 test_dtm = DocumentTermMatrix(hrc_test, control = list(stemming=T))
@@ -231,7 +230,7 @@ test_pwf_sent <- power_feat_sentences <- power_features_sentence(test_power_feat
 test_pwf_dtm <- power_features_dtm(test_dtm1)
 
 # generate final_features_test.csv
-final_features_test <- cbind(res_test, test_pwf_sent, test_pwf_dtm, test_dtm)
+final_features_test <- cbind(test_pwf_sent, test_pwf_dtm, test_dtm)
 write.csv(final_features_test, file = "../../data/test/final_features_test.csv")
 ```
 
