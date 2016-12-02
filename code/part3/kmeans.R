@@ -1,23 +1,18 @@
 ### 0. Library
-```{r echo=FALSE}
 pkg = c("dplyr")
 new.pkg = pkg[!(pkg %in% installed.packages()[,"Package"])]
 if (length(new.pkg)) {install.packages(new.pkg,dependencies = TRUE)}
 sapply(pkg,require,character.only = TRUE)
-```
 
 ### 1. Load Data
-```{r echo=FALSE}
 features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
 load('../../data/rf_sample.RData')
 # rf <- load('../../data/rf_data.RData')
 #hund <- sort(fit.0$importance, decreasing = T)[1:100]
 #rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
-```
 
 ### 2. Function to prepare data matrix for kmeans
-```{r}
 prep_dm = function(data.frame, predictor_names) {
   # Converting data.frame to data.matrix filtered by predictor names given
   df = data.frame
@@ -36,10 +31,8 @@ prep_dm = function(data.frame, predictor_names) {
   }
   return(dm)
 }
-```
 
 ### 3. Prepare data for K-means
-```{r}
 # Prepped data
 dm_full <- prep_dm(features_tr, rftophund)
 y.tr <- features_tr[,1]
@@ -64,10 +57,8 @@ ind.cv <- split(sample(1:nobs, replace = FALSE), f = rep(1:5, each = nobs/5))
 #y3.train <- y.tr[-ind.cv[[3]]]
 #y4.train <- y.tr[-ind.cv[[4]]]
 #y5.train <- y.tr[-ind.cv[[5]]]
-```
 
 ### 4. Run k-fold CV
-```{r}
 l = 9 # Number of multiple of nstart from 20 to 100 (by 10).
 err = t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
 withins <- t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
@@ -101,11 +92,9 @@ opt_nstart_wit = which(avg_w %in% min(avg_w)) * 10 + 10
 
 print(paste0("Optimal nstart for error is ", opt_nstart_err, "\n",
              "Optimal nstart for withinss is ", opt_nstart_wit))
-```
 
 
 ### 5. Run K-means with the best hyperparameter on full data
-```{r echo=FALSE}
 # Kmeans for Error
 km_final_err <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_err)
 dte_full <- table(km_final_err$cluster, y.tr)
@@ -120,5 +109,3 @@ print(kfw_err)
 
 ##
 #save(fit.0, file = "../../../rf_sample.RData")
-```
-
