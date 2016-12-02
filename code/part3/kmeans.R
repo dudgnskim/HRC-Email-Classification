@@ -129,7 +129,7 @@ test_w <- t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
 rownames(test_w) <- c("CV1", "CV2", "CV3", "CV4")
 colnames(test_w) <- c(seq(20,100,by=10))
 nobs_t = nrow(dm_test)
-ind.cv_t <- split(sample(1:nobs_t, replace = FALSE), f = rep(1:k, each = nobs/k))
+ind.cv_t <- split(sample(1:nobs_t, replace = FALSE), f = rep(1:k, each = nobs_t/k))
 print(paste0(k, " fold Cross-validation for nstart from 20 to 100"))
 for (i in 1:k) {
   dm_cv <- dm_test[-ind.cv_t[[i]],]
