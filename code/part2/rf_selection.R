@@ -38,7 +38,7 @@ for (i in 1:k) {
   # Time each CV
   time <- proc.time()
   rf_cv <- randomForest(as.factor(final_tr[-ind.cv[[i]],]$sender) ~ ., data = final_tr[-ind.cv[[i]],],
-                          type = "classification", ntree = opt_nTree, mtry = max(1, floor(ncol(final_tr[-ind.cv[[i]],])/3)))
+                          type = "classification", ntree = opt_nTree, mtry = max(1, floor(ncol(data)/3)))
   rf_func <- append(rf_func, list(rf_cv))
   pred_cv = predict(rf_func, final_tr[ind.cv[[i]],-ncol(final_tr)])
   pred_err_cv = sum(pred_cv != final_tr[ind.cv[[i]], ncol(final_tr)]) / nrow(final_tr[ind.cv[[i]],])
