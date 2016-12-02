@@ -9,8 +9,8 @@ features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
 load('../../data/rf_sample.RData')
 # rf <- load('../../data/rf_data.RData')
-#hund <- sort(fit.0$importance, decreasing = T)[1:100]
-#rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
+hund <- sort(fit.0$importance, decreasing = T)[1:100]
+rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
 
 ### 2. Function to prepare data matrix for kmeans
 prep_dm = function(data.frame, predictor_names) {
@@ -64,6 +64,8 @@ err = t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
 withins <- t(data.frame(rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l),rep(NA,l)))
 rownames(err) <- c("CV1","CV2","CV3","CV4","CV5")
 colnames(err) <- c(seq(20, 100, by = 10))
+rownames(withins) <- c("CV1", "CV2", "CV3", "CV4", "CV5")
+colnames(withins) <- c(seq(20,100,by=10))
 
 for (i in 1:k) {
   dm_cv <- dm_full[-ind.cv[[i]],]
@@ -76,8 +78,8 @@ for (i in 1:k) {
   }
 }
 
-print(paste0("this is the CV error df for ", err)
-print(paste0("this is the CV error df for ", withins)
+print(err)
+print(withins)
 
 # Find the lowest error rate & withins
 avg_err <- vector()
@@ -90,22 +92,24 @@ for (o in 1:ncol(err)) {
 opt_nstart_err = which(avg_err %in% min(avg_err)) * 10 + 10
 opt_nstart_wit = which(avg_w %in% min(avg_w)) * 10 + 10
 
-print(paste0("Optimal nstart for error is ", opt_nstart_err, "\n",
-             "Optimal nstart for withinss is ", opt_nstart_wit))
+print(paste0("Optimal nstart for error is ", opt_nstart_err[1], ", ",
+             "Optimal nstart for withinss is ", opt_nstart_wit[1]))
 
 
 ### 5. Run K-means with the best hyperparameter on full data
 # Kmeans for Error
-km_final_err <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_err)
+km_final_err <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_err[1])
 dte_full <- table(km_final_err$cluster, y.tr)
 kfe_err <- sum(diag(dte_full)) / sum(dte_full)
-print(kfe_err)
+print(paste0("Kmeans error rate: ", kfe_err))
 
 # Kmeans for Withinss
-km_final_wit <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_wit)
+km_final_wit <- kmeans(dm_full, centers = num_clusters, nstart = opt_nstart_wit[1])
 dtw_full <- table(km_final_wit$cluster, y.tr)
-kfw_err <- km_final_wit$withinss
-print(kfw_err)
+kfw_dist <- km_final_wit$withinss
+kfw_err <- sum(diag(dtw_full)) / sum(dtw_full)
+print(paste0("Kmeans error rate with withins distance: ", kfw_err))
+print(paste0("Within cluster distance: ", kfw_dist))
 
 ##
 #save(fit.0, file = "../../../rf_sample.RData")
