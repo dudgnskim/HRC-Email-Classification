@@ -23,26 +23,29 @@ set.seed(1234)
 ## nTree OOB
 # m = sqrt(p)
 for (i in 1:length(nTree)) {
-  rf = randomForest(sender ~ ., data = final_tr, ntree = nTree[i], mtry = max(1, floor(sqrt(ncol(x.tr)))))
-  models_sq = append(models, list(rf))
+  rf = randomForest(as.factor(sender) ~ ., data = final_tr, ntree = nTree[i], type = "classification",
+                    mtry = max(1, floor(sqrt(ncol(x.tr)))))
+  models_sq = append(models_sq, list(rf))
   err_1 = append(err_1, tail(rf$err.rate[,1],1))
-  cm1 = list(rf$confusion)
+  cm1 = append(cm1, list(rf$confusion))
 }
 
 # m = 1/2
-for (nt in nTree) {
-  rf = randomForest(sender ~ ., data = final_tr, ntree = nt, mtry = max(1, floor(ncol(x.tr)/2)))
-  models_half = append(models, list(rf))
-  err_2 = append(err_1, tail(rf$err.rate[,1],1))
-  cm2 = list(rf$confusion)
+for (i in 1:length(nTree)) {
+  rf = randomForest(as.factor(sender) ~ ., data = final_tr, type = "classification",
+                    ntree = nTree[i], mtry = max(1, floor(ncol(x.tr)/2)))
+  models_half = append(models_half, list(rf))
+  err_2 = append(err_2, tail(rf$err.rate[,1],1))
+  cm2 = append(cm2, list(rf$confusion))
 }
 
 # m = 1/3
-for (nt in nTree) {
-  rf = randomForest(sender ~ ., data = final_tr, ntree = nt, mtry = max(1, floor(ncol(x.tr)/3)))
-  models_third = append(models, list(rf))
-  err_3 = append(err_1, tail(rf$err.rate[,1],1))
-  cm3 = list(rf$confusion)
+for (i in 1:length(nTree)) {
+  rf = randomForest(as.factor(sender) ~ ., data = final_tr, type = "classification",
+                    ntree = nTree[i], mtry = max(1, floor(ncol(x.tr)/3)))
+  models_third = append(models_third, list(rf))
+  err_3 = append(err_3, tail(rf$err.rate[,1],1))
+  cm3 = append(cm3, list(rf$confusion))
 }
 
 err_mat <- rbind(err_1, err_2, err_3)
