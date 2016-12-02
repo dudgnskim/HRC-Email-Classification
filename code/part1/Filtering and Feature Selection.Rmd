@@ -248,7 +248,7 @@ power_features_dtm = function(dtm) {
   return(new)
 }
 
-pwr_feat_dtm_test <- (dtm_test)
+pwr_feat_dtm_test <- power_features_dtm(dtm_test)
 pwr_feat_dtm <- power_features_dtm(dtm_train_992) #returns the power feature using words in the emails
 ```
 
