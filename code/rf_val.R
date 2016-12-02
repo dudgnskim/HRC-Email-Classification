@@ -3,6 +3,7 @@ library(randomForest)
 final_tr <- read.csv(file.choose(), header = TRUE)
 x.tr <- final_tr[,-ncol(final_tr)]
 
+### Finding the best hyperparameter: nTree and mtry
 # Model list
 models_sq <- list()
 models_half <- list()
@@ -63,3 +64,4 @@ print(cm2)
 
 # m = p/3
 print(cm3)
+

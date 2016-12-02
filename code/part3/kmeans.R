@@ -35,7 +35,7 @@ prep_dm = function(data.frame, predictor_names) {
 ### 3. Prepare data for K-means
 # Prepped data
 dm_full <- prep_dm(features_tr, rftophund)
-y.tr <- features_tr[,1]
+y.tr <- features_tr[,ncol(features_tr)]
 
 # k-fold CV data (for quick-running one segment)
 set.seed(1234)
