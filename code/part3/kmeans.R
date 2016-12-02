@@ -75,7 +75,7 @@ for (i in 1:k) {
     dt_cv <- as.matrix(table(kc$cluster, y_cv))
     err[i,j] = sum(diag(dt_cv)) / sum(dt_cv)
     withins[i,j] = sum(kc$withinss)
-    print(paste0("CV for ", rownames(err)[j], ", nstart: ", colnames(err)[i], " completed"))
+    print(paste0("CV for ", rownames(err)[i], ", nstart: ", colnames(err)[j], " completed"))
   }
 }
 
@@ -110,7 +110,6 @@ dtw_full <- table(km_final_wit$cluster, y.tr)
 kfw_dist <- km_final_wit$withinss
 kfw_err <- sum(diag(dtw_full)) / sum(dtw_full)
 print(paste0("Length of the prediction vector: ", length(km_final_wit$cluster)))
-print(km_final_wit$cluster)
 print(paste0("Kmeans error rate with withins distance: ", kfw_err))
 print(paste0("Within cluster distance: ", kfw_dist))
 
