@@ -41,7 +41,7 @@ for (i in 1:k) {
   rf_cv <- randomForest(as.factor(final_tr[-ind.cv[[i]],]$sender) ~ ., data = final_tr[-ind.cv[[i]],],
                           type = "classification", ntree = opt_nTree, mtry = mtry_cv)
   rf_func <- append(rf_func, list(rf_cv))
-  pred_cv = predict(rf_func, final_tr[ind.cv[[i]],-ncol(final_tr)])
+  pred_cv = predict(rf_cv, final_tr[ind.cv[[i]],-ncol(final_tr)])
   pred_err_cv = sum(pred_cv != final_tr[ind.cv[[i]], ncol(final_tr)]) / nrow(final_tr[ind.cv[[i]],])
   pred_err_hat[i] <- pred_err_cv
   print(paste0(i, "th randomForest model has the Error rate of ", pred_err_cv))
