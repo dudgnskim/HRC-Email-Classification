@@ -7,10 +7,10 @@ sapply(pkg,require,character.only = TRUE)
 ### 1. Load Data
 features_tr <- read.csv('../../data/train/Final_Features.csv', header = TRUE)
 # DATA IMPORT FROM RF needed
-load('../../data/rf_sample.RData')
+load('../../data/best_rf.RData')
 # rf <- load('../../data/rf_data.RData')
-hund <- sort(fit.0$importance, decreasing = T)[1:100]
-rftophund <- rownames(fit.0$importance)[which(fit.0$importance %in% hund)]
+hund <- sort(best_rf$importance, decreasing = T)[1:100]
+rftophund <- rownames(best_rf$importance)[which(best_rf$importance %in% hund)]
 
 ### 2. Function to prepare data matrix for kmeans
 prep_dm = function(data.frame, predictor_names) {
@@ -113,8 +113,6 @@ print(paste0("Length of the prediction vector: ", length(km_final_wit$cluster)))
 print(paste0("Kmeans error rate with withins distance: ", kfw_err))
 print(paste0("Within cluster distance: ", kfw_dist))
 
-##
-#save(fit.0, file = "../../../rf_sample.RData")
 
 # Run kmeans on Test set
 # Load Final_features_test.csv for prediction
@@ -151,8 +149,12 @@ print(paste0("Optimal nstart for withinss test is ", opt_nstart_t[1]))
 km_test_1 <- kmeans(dm_test, centers = num_clusters, nstart = opt_nstart_wit[1])
 km_test_2 <- kmeans(dm_test, centers = num_clusters, nstart = opt_nstart_t[1])
 
+# Save second prediction
+pred_km <- km_test_2$cluster
+save(pred_km, file = "../../predictions/predict2.txt")
+
 # Acc
-pred_test <- read.table('../../predictions/predict.txt')
+pred_test <- read.table('../../predictions/predict_first.txt')
 pred_test <- pred_test[,1]
 acc_1 <- sum(km_test_1$cluster == pred_test) / length(pred_test)
 acc_2 <- sum(km_test_2$cluster == pred_test) / length(pred_test)
