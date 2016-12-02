@@ -183,14 +183,12 @@ power_features_sentence = function(corpus) {
     text = as.data.frame(hrc)[2]
     sents = convert_text_to_sentences(text)
 
-    # CK: Can we convert this to tm_map(sents, removePunctation)?
     sents2 = lapply(sents, remove_punc)
 
     # Number of sentences.
     power1 = length(sents2)
 
     # Average sentence length.
-    # TODO: convert to directly calculate average strength length without regex.
     power2 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
 
     # Number of question marks.
@@ -276,14 +274,12 @@ Oct<- rep(0, nrow(HRC_test))
 Nov<- rep(0, nrow(HRC_test))
 Dec<- rep(0, nrow(HRC_test))
 
-if(nchar(HRC_test[email,1]) > 2){
-  words <- unlist(strsplit(HRC_test[email,1]," "))[1:7]
-}else{
-  words <- unlist(strsplit(HRC_test[email,2]," "))[1:7]
-}
-
 for (email in 1:nrow(HRC_test)) {
-
+  if(nchar(HRC_test[email,1]) > 2){
+    words <- unlist(strsplit(HRC_test[email,1]," "))[1:7]
+  }else{
+  words <- unlist(strsplit(HRC_test[email,2]," "))[1:7]
+  }
   if("monday" %in% words){
     monday[email] <- 1}
   if("tuesday" %in% words){
@@ -325,6 +321,16 @@ for (email in 1:nrow(HRC_test)) {
 }
 
 cbind(monday, tuesday, wednesday, thursday, friday, saturday, sunday, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)
+}
+
+for (i in 1:nrow(HRC_power_feat_test)){
+  HRC_power_feat_test[i, 1] <- gsub("[[:punct:]]", "", HRC_power_feat_test[i, 1]) # Removes punctuations
+  HRC_power_feat_test[i, 1] <- gsub("\\s+", " ", HRC_power_feat_test[i, 1])
+}
+
+for (i in 1:nrow(HRC_power_feat)){
+  HRC_power_feat[i, 2] <- gsub("[[:punct:]]", "", HRC_power_feat[i, 2]) # Removes punctuations
+  HRC_power_feat[i, 2] <- gsub("\\s+", " ", HRC_power_feat[i, 2])
 }
 
 pwr_feat_mon_day_train <- pwr_feat_month_week(HRC_power_feat)
