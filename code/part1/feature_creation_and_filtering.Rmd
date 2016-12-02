@@ -137,7 +137,13 @@ power_features_sentence = function(corpus) {
 
     text = as.data.frame(hrc)[2]
     sents = convert_text_to_sentences(text)
-    sents2 = head(unlist(strsplit(sents, split = ".", fixed = T)), -1)
+    sents2 = unlist(strsplit(sents, split = ".", fixed = T))
+    if (x==1) {
+      sents2 = head(unlist(strsplit(sents, split = ".", fixed = T)), -1)  
+    } else {
+      sents2 = unlist(strsplit(sents, split = ".", fixed = T))
+    }
+    
 
     # Number of sentences.
     power1 = length(sents2)

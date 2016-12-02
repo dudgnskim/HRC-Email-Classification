@@ -74,7 +74,7 @@ for (i in 1:k) {
   dm_cv <- dm_full[-ind.cv[[i]],]
   y_cv <- y.tr[-ind.cv[[i]]]
   for (j in 1:l) {
-    kc <- kmeans(dm_cv, centers = num_clusters, nstart = (10+k*10))
+    kc <- kmeans(dm_cv, centers = num_clusters, nstart = (10+l*10))
   }
 }
 ```
